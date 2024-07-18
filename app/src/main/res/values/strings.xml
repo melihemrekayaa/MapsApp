@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">MapsApp</string>
     <string name="title_activity_maps">MapsActivity</string>
+    <string name="tomtom_api_key">u3PBOBRP9GHZr6S4XD8vR7Cx94tSFZ5v</string>
 </resources>

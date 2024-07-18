@@ -9,13 +9,25 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        maven {
+            credentials{
+                username = "darxreflex"
+                password = "Birikim1."
+            }
+            url = uri("https://repositories.tomtom.com/artifactory/maven")
+        }
+
     }
 }
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
     repositories {
         google()
         mavenCentral()
+        maven {
+            url = uri("https://repositories.tomtom.com/artifactory/maven")
+        }
+
     }
 }
 
