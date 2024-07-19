@@ -3,11 +3,15 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/mapFragment">
+    app:startDestination="@id/loginFragment">
     <fragment
         android:id="@+id/registerFragment"
         android:name="com.example.mapsapp.view.ui.auth.RegisterFragment"
-        android:label="RegisterFragment" />
+        android:label="RegisterFragment" >
+        <action
+            android:id="@+id/action_registerFragment_to_mapsActivity"
+            app:destination="@id/mapsActivity" />
+    </fragment>
     <fragment
         android:id="@+id/loginFragment"
         android:name="com.example.mapsapp.view.ui.auth.LoginFragment"
@@ -17,12 +21,12 @@
             android:id="@+id/action_loginFragment_to_registerFragment"
             app:destination="@id/registerFragment" />
         <action
-            android:id="@+id/action_loginFragment_to_mapFragment"
-            app:destination="@id/mapFragment" />
+            android:id="@+id/action_loginFragment_to_mapsActivity"
+            app:destination="@id/mapsActivity" />
     </fragment>
-    <fragment
-        android:id="@+id/mapFragment"
-        android:name="com.example.mapsapp.view.ui.map.MapFragment"
-        android:label="fragment_map"
-        tools:layout="@layout/fragment_map" />
+    <activity
+        android:id="@+id/mapsActivity"
+        android:name="com.example.mapsapp.MapsActivity"
+        android:label="activity_maps"
+        tools:layout="@layout/activity_maps" />
 </navigation>

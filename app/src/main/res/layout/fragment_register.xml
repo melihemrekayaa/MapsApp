@@ -8,7 +8,7 @@
     tools:context="view.ui.auth.RegisterFragment">
 
     <EditText
-        android:id="@+id/emailEditText"
+        android:id="@+id/emailEditTextRegister"
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:layout_marginStart="32dp"
@@ -16,24 +16,24 @@
         android:layout_marginTop="200dp"
         android:ems="10"
         android:inputType="text"
-        android:text="Email"
+        android:hint="Email"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <EditText
-        android:id="@+id/passwordEditText"
+        android:id="@+id/passwordEditTextRegister"
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:layout_marginStart="32dp"
         android:layout_marginEnd="32dp"
         android:layout_marginTop="16dp"
         android:ems="10"
-        android:inputType="text"
-        android:text="Password"
+        android:inputType="textPassword"
+        android:hint="Password"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/emailEditText" />
+        app:layout_constraintTop_toBottomOf="@+id/emailEditTextRegister" />
 
     <Button
         android:id="@+id/registerButton"
@@ -42,7 +42,7 @@
         android:text="Register"
         android:layout_marginHorizontal="20dp"
         android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@id/passwordEditText"
+        app:layout_constraintTop_toBottomOf="@id/passwordEditTextRegister"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
          />

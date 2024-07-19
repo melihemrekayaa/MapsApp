@@ -5,7 +5,6 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
@@ -18,12 +17,6 @@ class LoginFragment : Fragment() {
     private lateinit var authViewModel: AuthViewModel
     private var _binding: FragmentLoginBinding? = null
     private val binding get() = _binding!!
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -48,16 +41,12 @@ class LoginFragment : Fragment() {
         authViewModel.user.observe(viewLifecycleOwner) { user ->
             if (user != null) {
                 Toast.makeText(requireContext(), "Giriş Başarılı", Toast.LENGTH_SHORT).show()
-                findNavController().navigate(R.id.action_loginFragment_to_mapFragment)
-            }
-            else{
+                findNavController().navigate(R.id.action_loginFragment_to_mapsActivity)
+
+            } else {
                 Toast.makeText(requireContext(), "Giriş Başarısız", Toast.LENGTH_SHORT).show()
             }
         }
-
-
-
-
         return view
     }
 
