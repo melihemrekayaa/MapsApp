@@ -27,6 +27,10 @@ class LoginFragment : Fragment() {
         _binding = FragmentLoginBinding.inflate(inflater, container, false)
         val view = binding.root
 
+        if (authViewModel.isLogin()) {
+            Toast.makeText(requireContext(), "Giriş Başarılı", Toast.LENGTH_SHORT).show()
+            findNavController().navigate(R.id.action_loginFragment_to_homeFragment)
+        }
         binding.loginBtn.setOnClickListener {
             val email = binding.emailEditText.text.toString()
             val password = binding.passwordEditText.text.toString()
@@ -41,7 +45,7 @@ class LoginFragment : Fragment() {
         authViewModel.user.observe(viewLifecycleOwner) { user ->
             if (user != null) {
                 Toast.makeText(requireContext(), "Giriş Başarılı", Toast.LENGTH_SHORT).show()
-                findNavController().navigate(R.id.action_loginFragment_to_mapsActivity)
+                findNavController().navigate(R.id.action_loginFragment_to_homeFragment)
 
             } else {
                 Toast.makeText(requireContext(), "Giriş Başarısız", Toast.LENGTH_SHORT).show()

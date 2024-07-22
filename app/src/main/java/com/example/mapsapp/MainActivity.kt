@@ -36,4 +36,13 @@ class MainActivity : AppCompatActivity() {
         val navController = findNavController(R.id.nav_host_fragment)
         return navController.navigateUp() || super.onSupportNavigateUp()
     }
+
+    override fun onBackPressed() {
+        val navController = findNavController(R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == R.id.homeFragment) {
+            finish() // Uygulamayı kapat
+        } else {
+            super.onBackPressed()
+        }
+    }
 }

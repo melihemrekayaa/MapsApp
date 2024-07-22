@@ -11,12 +11,15 @@ import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.FragmentRegisterBinding
+import com.example.mapsapp.model.User
 import com.example.mapsapp.viewmodel.AuthViewModel
+import com.google.firebase.firestore.FirebaseFirestore
 
 class RegisterFragment : Fragment() {
     private var _binding: FragmentRegisterBinding? = null
     private val binding get() = _binding!!
     private val authViewModel: AuthViewModel by viewModels()
+    private lateinit var firestore: FirebaseFirestore
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -28,6 +31,9 @@ class RegisterFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        firestore = FirebaseFirestore.getInstance()
+
         binding.registerButton.setOnClickListener {
             val email = binding.emailEditTextRegister.text.toString()
             val password = binding.passwordEditTextRegister.text.toString()
@@ -43,7 +49,7 @@ class RegisterFragment : Fragment() {
             if (user != null) {
                 Toast.makeText(requireContext(), "Kayıt başarılı", Toast.LENGTH_SHORT)
                     .show()
-                findNavController().navigate(R.id.action_registerFragment_to_mapsActivity)
+                findNavController().navigate(R.id.action_registerFragment_to_homeFragment)
             } else {
                 Toast.makeText(requireContext(), "Kayıt başarısız.", Toast.LENGTH_SHORT).show()
             }

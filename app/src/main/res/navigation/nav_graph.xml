@@ -11,6 +11,9 @@
         <action
             android:id="@+id/action_registerFragment_to_mapsActivity"
             app:destination="@id/mapsActivity" />
+        <action
+            android:id="@+id/action_registerFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
     </fragment>
     <fragment
         android:id="@+id/loginFragment"
@@ -21,12 +24,47 @@
             android:id="@+id/action_loginFragment_to_registerFragment"
             app:destination="@id/registerFragment" />
         <action
-            android:id="@+id/action_loginFragment_to_mapsActivity"
-            app:destination="@id/mapsActivity" />
+            android:id="@+id/action_loginFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
     </fragment>
     <activity
         android:id="@+id/mapsActivity"
         android:name="com.example.mapsapp.MapsActivity"
         android:label="activity_maps"
         tools:layout="@layout/activity_maps" />
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.example.mapsapp.view.ui.HomeFragment"
+        android:label="fragment_home"
+        tools:layout="@layout/fragment_home" >
+        <action
+            android:id="@+id/action_homeFragment_to_mapsActivity"
+            app:destination="@id/mapsActivity" />
+        <action
+            android:id="@+id/action_homeFragment_to_chatFragment"
+            app:destination="@id/chatFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_loginFragment"
+            app:destination="@id/loginFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_chatInterfaceFragment"
+            app:destination="@id/chatInterfaceFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/chatFragment"
+        android:name="com.example.mapsapp.view.ui.ChatFragment"
+        android:label="ChatFragment" >
+        <argument
+            android:name="userId"
+            app:argType="string" />
+    </fragment>
+    <fragment
+        android:id="@+id/chatInterfaceFragment"
+        android:name="com.example.mapsapp.ChatInterfaceFragment"
+        android:label="fragment_chat_interface"
+        tools:layout="@layout/fragment_chat_interface" >
+        <action
+            android:id="@+id/action_chatInterfaceFragment_to_chatFragment"
+            app:destination="@id/chatFragment" />
+    </fragment>
 </navigation>

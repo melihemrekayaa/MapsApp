@@ -6,6 +6,7 @@ plugins {
     id ("dagger.hilt.android.plugin")
     id ("kotlin-parcelize")
     alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
+    id ("androidx.navigation.safeargs")
 }
 
 val MAPTILER_API_KEY = "7FSWmFQZTihljKDoGZiO"
@@ -93,6 +94,7 @@ dependencies {
     implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.4.0")
     implementation ("androidx.navigation:navigation-fragment-ktx:2.3.5")
     implementation ("androidx.navigation:navigation-ui-ktx:2.3.5")
+    implementation ("androidx.navigation:navigation-safe-args-gradle-plugin:2.7.7")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
