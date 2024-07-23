@@ -6,7 +6,7 @@ plugins {
     id ("dagger.hilt.android.plugin")
     id ("kotlin-parcelize")
     alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
-    id ("androidx.navigation.safeargs")
+    id("androidx.navigation.safeargs")
 }
 
 val MAPTILER_API_KEY = "7FSWmFQZTihljKDoGZiO"
@@ -26,10 +26,16 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "MAPTILER_API_KEY", "\"${MAPTILER_API_KEY}\"")
+        vectorDrawables {
+            useSupportLibrary = true
+        }
     }
 
     packaging {
         jniLibs.pickFirsts.add("lib/**/libc++_shared.so")
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
     }
     buildTypes {
         release {
@@ -56,6 +62,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        compose = true
     }
 
     kapt {
@@ -64,6 +71,9 @@ android {
 
     viewBinding{
         enable = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.1"
     }
 
 }
@@ -80,7 +90,33 @@ dependencies {
     implementation ("com.google.firebase:firebase-firestore-ktx:24.0.0")
 
 
+    implementation("org.jetbrains.kotlin:kotlin-stdlib")
+    implementation("com.squareup.okhttp3:okhttp:4.9.1")
+    implementation("org.json:json:20210307")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
 
+    // Dependencies to test
+    testImplementation(kotlin("test"))
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.0")
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.0")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.10")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.10")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.9.1")
+
+    // Retrofit
+    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
 
     implementation ("com.google.firebase:firebase-auth-ktx:21.0.3")
     implementation ("com.google.firebase:firebase-firestore-ktx:24.0.0")
@@ -94,7 +130,6 @@ dependencies {
     implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.4.0")
     implementation ("androidx.navigation:navigation-fragment-ktx:2.3.5")
     implementation ("androidx.navigation:navigation-ui-ktx:2.3.5")
-    implementation ("androidx.navigation:navigation-safe-args-gradle-plugin:2.7.7")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

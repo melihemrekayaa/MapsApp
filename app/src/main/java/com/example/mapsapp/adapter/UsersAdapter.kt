@@ -9,18 +9,19 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.mapsapp.R
 import com.example.mapsapp.model.Message
 import com.example.mapsapp.model.User
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 
-class UsersAdapter(private val users: List<User>,private val onUserClick: (User) -> Unit) : RecyclerView.Adapter<UsersAdapter.UsersViewHolder>() {
-    class UsersViewHolder(val itemview : View) : RecyclerView.ViewHolder(itemview){
+class UsersAdapter(private val users: List<User>, private val onUserClick: (User) -> Unit) : RecyclerView.Adapter<UsersAdapter.UsersViewHolder>() {
+    class UsersViewHolder(val itemview: View) : RecyclerView.ViewHolder(itemview) {
         val userImageView: ImageView = itemView.findViewById(R.id.userImageView)
         val userNameTextView: TextView = itemView.findViewById(R.id.userNameTextView)
         val lastMessageTextView: TextView = itemView.findViewById(R.id.lastMessageTextView)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UsersViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.chat_interface_item,parent,false)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.chat_interface_item, parent, false)
         return UsersViewHolder(view)
     }
 
@@ -33,22 +34,41 @@ class UsersAdapter(private val users: List<User>,private val onUserClick: (User)
         holder.userNameTextView.text = user.email.split("@")[0]
         holder.userImageView.setImageResource(R.drawable.baseline_account_circle_24)
 
-        FirebaseFirestore.getInstance().collection("messages")
-            .whereEqualTo("receiverId",user.uid)
-            .orderBy("timestamp",Query.Direction.ASCENDING)
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        val firestore = FirebaseFirestore.getInstance()
+
+        firestore.collection("messages")
+            .whereEqualTo("senderId", currentUserId)
+            .whereEqualTo("receiverId", user.uid)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
             .limit(1)
             .get()
-            .addOnSuccessListener {document ->
-                if (!document.isEmpty){
+            .addOnSuccessListener { document ->
+                if (!document.isEmpty) {
                     val lastMessage = document.documents[0].toObject(Message::class.java)
-                    holder.lastMessageTextView.text = lastMessage?.message
+                    holder.lastMessageTextView.text = lastMessage?.message ?: ""
+                } else {
+                    holder.lastMessageTextView.text = ""
                 }
-
             }
 
-        holder.itemview.setOnClickListener{
+        firestore.collection("messages")
+            .whereEqualTo("senderId", user.uid)
+            .whereEqualTo("receiverId", currentUserId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(1)
+            .get()
+            .addOnSuccessListener { document ->
+                if (!document.isEmpty) {
+                    val lastMessage = document.documents[0].toObject(Message::class.java)
+                    holder.lastMessageTextView.text = lastMessage?.message ?: ""
+                } else {
+                    holder.lastMessageTextView.text = ""
+                }
+            }
+
+        holder.itemview.setOnClickListener {
             onUserClick(user)
         }
-
     }
 }

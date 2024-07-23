@@ -7,7 +7,6 @@
     android:layout_height="match_parent"
     tools:context=".view.ui.HomeFragment">
 
-
     <TextView
         android:id="@+id/welcomeTextView"
         android:layout_width="wrap_content"
@@ -82,6 +81,22 @@
         app:layout_constraintVertical_bias="0.166" />
 
     <Button
+        android:id="@+id/chatBotBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="16dp"
+        android:text="Go to the ChatBot"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/chatBtn"
+        app:layout_constraintVertical_bias="0.166" />
+
+    <Button
         android:id="@+id/signOutBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -89,5 +104,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/chatBtn" />
+        app:layout_constraintTop_toBottomOf="@+id/chatBotBtn" />
 </androidx.constraintlayout.widget.ConstraintLayout>

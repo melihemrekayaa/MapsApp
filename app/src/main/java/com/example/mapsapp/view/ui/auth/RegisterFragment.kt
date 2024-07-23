@@ -1,11 +1,18 @@
 package com.example.mapsapp.view.ui.auth
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
@@ -14,12 +21,17 @@ import com.example.mapsapp.databinding.FragmentRegisterBinding
 import com.example.mapsapp.model.User
 import com.example.mapsapp.viewmodel.AuthViewModel
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.GeoPoint
 
 class RegisterFragment : Fragment() {
     private var _binding: FragmentRegisterBinding? = null
     private val binding get() = _binding!!
     private val authViewModel: AuthViewModel by viewModels()
     private lateinit var firestore: FirebaseFirestore
+    private lateinit var locationManager: LocationManager
+    private lateinit var locationListener: LocationListener
+    private lateinit var permissionLauncher: ActivityResultLauncher<String>
+    private var currentLocation : GeoPoint ?= null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -33,26 +45,70 @@ class RegisterFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         firestore = FirebaseFirestore.getInstance()
+        locationManager = requireActivity().getSystemService(LocationManager::class.java)
+
+        permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()){granted ->
+            if (granted) {
+                getUserLocation()
+            }
+        }
 
         binding.registerButton.setOnClickListener {
-            val email = binding.emailEditTextRegister.text.toString()
-            val password = binding.passwordEditTextRegister.text.toString()
-
-            if (email.isNotEmpty() && password.isNotEmpty()) {
-                authViewModel.register(email, password)
-            } else {
-                Toast.makeText(requireContext(), "Bilgileri doldurun", Toast.LENGTH_SHORT).show()
-            }
+            getUserLocation()
+            registerUser()
         }
 
         authViewModel.user.observe(viewLifecycleOwner) { user ->
             if (user != null) {
+                saveUserLocation(uid = user.uid)
                 Toast.makeText(requireContext(), "Kayıt başarılı", Toast.LENGTH_SHORT)
                     .show()
-                findNavController().navigate(R.id.action_registerFragment_to_homeFragment)
+                val action = RegisterFragmentDirections.actionRegisterFragmentToHomeFragment()
+                findNavController().navigate(action)
             } else {
                 Toast.makeText(requireContext(), "Kayıt başarısız.", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    private fun saveUserLocation(uid: String){
+        val userData = hashMapOf(
+            "uid" to uid,
+            "email" to authViewModel.user.value?.email,
+            "location" to currentLocation
+        )
+
+        firestore.collection("users").document(uid).set(userData)
+            .addOnSuccessListener {
+                Toast.makeText(requireContext(), "Location Saved", Toast.LENGTH_SHORT).show()
+            }
+
+            .addOnFailureListener{
+                Toast.makeText(requireContext(), "Location Couldn't Saved", Toast.LENGTH_SHORT).show()
+            }
+
+    }
+
+    private fun getUserLocation(){
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
+            locationListener = LocationListener { location ->
+                currentLocation =  GeoPoint(location.latitude, location.longitude)
+                locationManager.removeUpdates(locationListener)
+
+            }
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, locationListener)
+        }else{
+            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+    private fun registerUser(){
+        val email = binding.emailEditTextRegister.text.toString()
+        val password = binding.passwordEditTextRegister.text.toString()
+
+        if (email.isNotEmpty() && password.isNotEmpty() && currentLocation != null) {
+            authViewModel.register(email, password, currentLocation!!)
+        } else {
+            Toast.makeText(requireContext(), "Fill in the blanks", Toast.LENGTH_SHORT).show()
         }
     }
 

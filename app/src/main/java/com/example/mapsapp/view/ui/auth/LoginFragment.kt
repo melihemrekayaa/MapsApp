@@ -29,7 +29,8 @@ class LoginFragment : Fragment() {
 
         if (authViewModel.isLogin()) {
             Toast.makeText(requireContext(), "Giriş Başarılı", Toast.LENGTH_SHORT).show()
-            findNavController().navigate(R.id.action_loginFragment_to_homeFragment)
+            val action = LoginFragmentDirections.actionLoginFragmentToHomeFragment()
+            findNavController().navigate(action)
         }
         binding.loginBtn.setOnClickListener {
             val email = binding.emailEditText.text.toString()
@@ -39,13 +40,15 @@ class LoginFragment : Fragment() {
         }
 
         binding.registerBtn.setOnClickListener {
-            findNavController().navigate(R.id.action_loginFragment_to_registerFragment)
+            val action = LoginFragmentDirections.actionLoginFragmentToRegisterFragment()
+            findNavController().navigate(action)
         }
 
         authViewModel.user.observe(viewLifecycleOwner) { user ->
             if (user != null) {
                 Toast.makeText(requireContext(), "Giriş Başarılı", Toast.LENGTH_SHORT).show()
-                findNavController().navigate(R.id.action_loginFragment_to_homeFragment)
+                val action = LoginFragmentDirections.actionLoginFragmentToHomeFragment()
+                findNavController().navigate(action)
 
             } else {
                 Toast.makeText(requireContext(), "Giriş Başarısız", Toast.LENGTH_SHORT).show()

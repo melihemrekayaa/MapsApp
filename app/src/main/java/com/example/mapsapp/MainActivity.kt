@@ -1,48 +1,36 @@
 package com.example.mapsapp
 
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.navigation.findNavController
-import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.setupActionBarWithNavController
+import androidx.fragment.app.commit
 import com.example.mapsapp.databinding.ActivityMainBinding
-
+import com.example.mapsapp.view.ui.ChatFragment
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var binding : ActivityMainBinding
+    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
 
+        // ActivityMainBinding'i kullanarak görünümü ayarlayın
         binding = ActivityMainBinding.inflate(layoutInflater)
-
         setContentView(binding.root)
 
-        val navHostFragment = supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        val navController = navHostFragment.navController
-        supportActionBar?.let {
-            setupActionBarWithNavController(navController)
-        }
-
-    }
-
-    override fun onSupportNavigateUp(): Boolean {
-        val navController = findNavController(R.id.nav_host_fragment)
-        return navController.navigateUp() || super.onSupportNavigateUp()
-    }
-
-    override fun onBackPressed() {
-        val navController = findNavController(R.id.nav_host_fragment)
-        if (navController.currentDestination?.id == R.id.homeFragment) {
-            finish() // Uygulamayı kapat
-        } else {
-            super.onBackPressed()
+        // Intent'ten receiverId'yi alın
+        val receiverId = intent.getStringExtra("receiverId")
+        if (receiverId != null) {
+            // ChatFragment'i oluşturun ve argümanları ayarlayın
+            val chatFragment = ChatFragment().apply {
+                arguments = Bundle().apply {
+                    putString("receiverId", receiverId)
+                }
+            }
+            // ChatFragment'i yerleştirin
+            supportFragmentManager.commit {
+                replace(R.id.nav_host_fragment, chatFragment)
+                addToBackStack(null)
+            }
         }
     }
 }

@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.GeoPoint
 
 class AuthViewModel : ViewModel() {
     private val _user = MutableLiveData<FirebaseUser?>()
@@ -15,12 +16,12 @@ class AuthViewModel : ViewModel() {
     private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
     private val firestore: FirebaseFirestore by lazy {FirebaseFirestore.getInstance()}
 
-    fun register(email:String,password:String){
+    fun register(email:String,password:String,location: GeoPoint){
         auth.createUserWithEmailAndPassword(email,password)
             .addOnCompleteListener{task ->
                 if(task.isSuccessful){
                     _user.value = auth.currentUser
-                    addUserToFirestore(auth.currentUser)
+                    addUserToFirestore(auth.currentUser, location = location)
                 }else{
                     _user.value = null
                 }
@@ -38,16 +39,17 @@ class AuthViewModel : ViewModel() {
             }
     }
 
-    fun addUserToFirestore(firebaseUser: FirebaseUser?){
+    private fun addUserToFirestore(firebaseUser: FirebaseUser?, location: GeoPoint) {
         firebaseUser?.let { user ->
             val userData = hashMapOf(
                 "uid" to user.uid,
-                "email" to user.email
+                "email" to user.email,
+                "location" to location
             )
             firestore.collection("users").document(user.uid).set(userData)
         }
-
     }
+
 
     fun isLogin() : Boolean{
         return  null != auth.currentUser

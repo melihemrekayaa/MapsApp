@@ -1,5 +1,6 @@
 package com.example.mapsapp.view.ui
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -10,10 +11,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.FragmentHomeBinding
-import com.example.mapsapp.databinding.FragmentLoginBinding
 import com.example.mapsapp.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
-
+import com.example.mapsapp.view.ui.chatbot.ui.theme.ChatBotActivity
 
 class HomeFragment : Fragment() {
 
@@ -24,7 +24,6 @@ class HomeFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
     }
 
     override fun onCreateView(
@@ -38,26 +37,35 @@ class HomeFragment : Fragment() {
 
         val userEmail = auth.currentUser?.email
 
-
-
         binding.emailTextView.text = "Welcome, ${userEmail}"
 
         binding.mapsBtn.setOnClickListener {
-            findNavController().navigate(R.id.action_homeFragment_to_mapsActivity)
+            val action = HomeFragmentDirections.actionHomeFragmentToMapsActivity()
+            findNavController().navigate(action)
         }
 
         binding.chatBtn.setOnClickListener {
-            findNavController().navigate(R.id.action_homeFragment_to_chatInterfaceFragment)
+            val action = HomeFragmentDirections.actionHomeFragmentToChatInterfaceFragment()
+            findNavController().navigate(action)
+        }
+
+        binding.chatBotBtn.setOnClickListener {
+            // ChatBotActivity'yi başlatmak için Intent kullanma
+            val intent = Intent(activity, ChatBotActivity::class.java)
+            startActivity(intent)
         }
 
         binding.signOutBtn.setOnClickListener {
             authViewModel.logout()
-            findNavController().navigate(R.id.action_homeFragment_to_loginFragment)
+            val action = HomeFragmentDirections.actionHomeFragmentToLoginFragment()
+            findNavController().navigate(action)
         }
 
         return view
     }
 
-
-
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
 }

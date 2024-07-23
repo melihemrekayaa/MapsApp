@@ -7,39 +7,47 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.mapsapp.R
 import com.example.mapsapp.model.Message
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-class ChatAdapter(private val messages: List<Message>, private val currentUserId : String): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class ChatAdapter(private val messages: List<Message>, private val currentUserId: String): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
         const val VIEW_TYPE_USER_MESSAGE = 1
         const val VIEW_TYPE_OTHER_MESSAGE = 2
     }
 
-    class UserMessageViewHolder(itemview: View) : RecyclerView.ViewHolder(itemview){
-        val messageTextView: TextView = itemview.findViewById(R.id.messageTextView)
+    class UserMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val messageTextView: TextView = itemView.findViewById(R.id.text_message_body)
+        val timeTextView: TextView = itemView.findViewById(R.id.text_message_time)
+
+
     }
-    class OtherMessageViewHolder(itemview: View) : RecyclerView.ViewHolder(itemview){
-        val messageTextView: TextView = itemview.findViewById(R.id.messageTextView)
+
+    class OtherMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val messageTextView: TextView = itemView.findViewById(R.id.text_message_body)
+        val timeTextView: TextView = itemView.findViewById(R.id.text_message_time)
+
     }
 
     override fun getItemViewType(position: Int): Int {
         return if (messages[position].senderId == currentUserId) {
             VIEW_TYPE_USER_MESSAGE
-        }
-        else{
+        } else {
             VIEW_TYPE_OTHER_MESSAGE
         }
     }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return if (viewType == VIEW_TYPE_USER_MESSAGE){
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_user_message,parent,false)
+        return if (viewType == VIEW_TYPE_USER_MESSAGE) {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_user_message, parent, false)
             UserMessageViewHolder(view)
         } else {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_other_message,parent,false)
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_other_message, parent, false)
             OtherMessageViewHolder(view)
         }
     }
-
 
     override fun getItemCount(): Int {
         return messages.size
@@ -47,11 +55,15 @@ class ChatAdapter(private val messages: List<Message>, private val currentUserId
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = messages[position]
-        if (holder is UserMessageViewHolder){
+        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val time = sdf.format(Date(message.timestamp))
+
+        if (holder is UserMessageViewHolder) {
             holder.messageTextView.text = message.message
-        }
-        else if(holder is OtherMessageViewHolder){
+            holder.timeTextView.text = time
+        } else if (holder is OtherMessageViewHolder) {
             holder.messageTextView.text = message.message
+            holder.timeTextView.text = time
         }
     }
 }
