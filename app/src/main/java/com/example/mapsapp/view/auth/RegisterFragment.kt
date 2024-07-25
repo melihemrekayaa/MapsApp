@@ -1,7 +1,8 @@
-package com.example.mapsapp.view.ui.auth
+package com.example.mapsapp.view.auth
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
@@ -47,22 +48,25 @@ class RegisterFragment : Fragment() {
         firestore = FirebaseFirestore.getInstance()
         locationManager = requireActivity().getSystemService(LocationManager::class.java)
 
-        permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()){granted ->
+        permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()){ granted ->
             if (granted) {
                 getUserLocation()
+            } else {
+                Toast.makeText(requireContext(), "Konum izni reddedildi", Toast.LENGTH_SHORT).show()
             }
         }
 
+        // Kullanıcının konumunu burada almak
+        getUserLocation()
+
         binding.registerButton.setOnClickListener {
-            getUserLocation()
             registerUser()
         }
 
         authViewModel.user.observe(viewLifecycleOwner) { user ->
             if (user != null) {
                 saveUserLocation(uid = user.uid)
-                Toast.makeText(requireContext(), "Kayıt başarılı", Toast.LENGTH_SHORT)
-                    .show()
+                Toast.makeText(requireContext(), "Kayıt başarılı", Toast.LENGTH_SHORT).show()
                 val action = RegisterFragmentDirections.actionRegisterFragmentToHomeFragment()
                 findNavController().navigate(action)
             } else {
@@ -82,28 +86,33 @@ class RegisterFragment : Fragment() {
             .addOnSuccessListener {
                 Toast.makeText(requireContext(), "Location Saved", Toast.LENGTH_SHORT).show()
             }
-
-            .addOnFailureListener{
+            .addOnFailureListener {
                 Toast.makeText(requireContext(), "Location Couldn't Saved", Toast.LENGTH_SHORT).show()
             }
-
     }
 
-    private fun getUserLocation(){
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
-            locationListener = LocationListener { location ->
-                currentLocation =  GeoPoint(location.latitude, location.longitude)
-                locationManager.removeUpdates(locationListener)
-
+    private fun getUserLocation() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            locationListener = object : LocationListener {
+                override fun onLocationChanged(location: Location) {
+                    currentLocation = GeoPoint(location.latitude, location.longitude)
+                    locationManager.removeUpdates(this)
+                }
+                override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+                override fun onProviderEnabled(provider: String) {}
+                override fun onProviderDisabled(provider: String) {}
             }
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, locationListener)
-        }else{
+        } else {
             permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
     }
+
     private fun registerUser(){
         val email = binding.emailEditTextRegister.text.toString()
         val password = binding.passwordEditTextRegister.text.toString()
+
+        getUserLocation()
 
         if (email.isNotEmpty() && password.isNotEmpty() && currentLocation != null) {
             authViewModel.register(email, password, currentLocation!!)
@@ -111,5 +120,4 @@ class RegisterFragment : Fragment() {
             Toast.makeText(requireContext(), "Fill in the blanks", Toast.LENGTH_SHORT).show()
         }
     }
-
 }

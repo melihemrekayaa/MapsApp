@@ -11,9 +11,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.FragmentHomeBinding
+import com.example.mapsapp.view.chatbot.ChatBotActivity
+
 import com.example.mapsapp.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
-import com.example.mapsapp.view.ui.chatbot.ui.theme.ChatBotActivity
+
 
 class HomeFragment : Fragment() {
 

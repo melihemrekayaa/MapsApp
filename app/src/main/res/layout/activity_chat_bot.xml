@@ -1,35 +1,44 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    tools:context=".view.chatbot.ChatBotActivity">
 
-    <TextView
-        android:id="@+id/textViewResponse"
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/editTextMessage"
-        android:padding="16dp"
-        android:text="Cevaplar burada görünecek" />
+        android:background="?attr/colorPrimary"
+        android:theme="?attr/actionBarTheme"
+        android:elevation="4dp"/>
 
-    <EditText
-        android:id="@+id/editTextMessage"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewChat"
         android:layout_width="match_parent"
-        android:layout_height="70dp"
-        android:layout_alignParentBottom="true"
-        android:layout_toStartOf="@+id/buttonSend"
-        android:layout_toLeftOf="@+id/buttonSend"
+        android:layout_height="0dp"
+        android:layout_above="@id/linearLayoutMessageInput"
+        android:layout_below="@id/toolbar"
+        android:padding="8dp"/>
 
-        android:hint="Mesajınızı girin"
-        android:layout_weight="1"
-        android:padding="8dp" />
-
-    <Button
-        android:id="@+id/buttonSend"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:id="@+id/linearLayoutMessageInput"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
-        android:text="Gönder"
-        android:padding="8dp" />
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <EditText
+            android:id="@+id/editTextMessage"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Mesajınızı girin" />
+
+        <Button
+            android:id="@+id/buttonSend"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Gönder" />
+    </LinearLayout>
 </RelativeLayout>

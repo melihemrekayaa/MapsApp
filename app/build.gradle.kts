@@ -92,6 +92,7 @@ dependencies {
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
     implementation("com.squareup.okhttp3:okhttp:4.9.1")
+    implementation ("com.squareup.okhttp3:logging-interceptor:4.9.1")
     implementation("org.json:json:20210307")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -101,6 +102,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.recyclerview)
 
     // Dependencies to test
     testImplementation(kotlin("test"))

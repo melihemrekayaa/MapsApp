@@ -1,4 +1,4 @@
-package com.example.mapsapp.view.ui.auth
+package com.example.mapsapp.view.auth
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -47,7 +47,8 @@ class LoginFragment : Fragment() {
         authViewModel.user.observe(viewLifecycleOwner) { user ->
             if (user != null) {
                 Toast.makeText(requireContext(), "Giriş Başarılı", Toast.LENGTH_SHORT).show()
-                val action = LoginFragmentDirections.actionLoginFragmentToHomeFragment()
+                val action =
+                    LoginFragmentDirections.actionLoginFragmentToHomeFragment()
                 findNavController().navigate(action)
 
             } else {

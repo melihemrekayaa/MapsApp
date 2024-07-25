@@ -1,4 +1,4 @@
-package com.example.mapsapp.view.ui.chatbot.ui.theme
+package com.example.mapsapp.view.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

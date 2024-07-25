@@ -1,4 +1,4 @@
-package com.example.mapsapp.view.ui.chatbot.ui.theme
+package com.example.mapsapp.view.ui.theme
 
 import android.app.Activity
 import android.os.Build
