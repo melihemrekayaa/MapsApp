@@ -3,9 +3,13 @@ package com.example.mapsapp
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
+import androidx.navigation.findNavController
+import androidx.navigation.ui.setupActionBarWithNavController
 import com.example.mapsapp.databinding.ActivityMainBinding
 import com.example.mapsapp.view.ui.ChatFragment
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
@@ -13,24 +17,26 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ActivityMainBinding'i kullanarak görünümü ayarlayın
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Intent'ten receiverId'yi alın
         val receiverId = intent.getStringExtra("receiverId")
         if (receiverId != null) {
-            // ChatFragment'i oluşturun ve argümanları ayarlayın
+
             val chatFragment = ChatFragment().apply {
                 arguments = Bundle().apply {
                     putString("receiverId", receiverId)
                 }
             }
-            // ChatFragment'i yerleştirin
             supportFragmentManager.commit {
                 replace(R.id.nav_host_fragment, chatFragment)
                 addToBackStack(null)
             }
         }
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        val navController = findNavController(R.id.nav_host_fragment)
+        return navController.navigateUp() || super.onSupportNavigateUp()
     }
 }

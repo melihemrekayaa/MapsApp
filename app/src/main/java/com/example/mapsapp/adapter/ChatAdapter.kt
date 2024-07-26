@@ -7,11 +7,9 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.mapsapp.R
 import com.example.mapsapp.model.Message
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
-class ChatAdapter(private val messages: List<Message>, private val currentUserId: String): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class ChatAdapter(private var messages: List<Message>, private val currentUserId: String) :
+    RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
         const val VIEW_TYPE_USER_MESSAGE = 1
@@ -21,14 +19,11 @@ class ChatAdapter(private val messages: List<Message>, private val currentUserId
     class UserMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val messageTextView: TextView = itemView.findViewById(R.id.text_message_body)
         val timeTextView: TextView = itemView.findViewById(R.id.text_message_time)
-
-
     }
 
     class OtherMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val messageTextView: TextView = itemView.findViewById(R.id.text_message_body)
         val timeTextView: TextView = itemView.findViewById(R.id.text_message_time)
-
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -55,15 +50,15 @@ class ChatAdapter(private val messages: List<Message>, private val currentUserId
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = messages[position]
-        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val time = sdf.format(Date(message.timestamp))
-
         if (holder is UserMessageViewHolder) {
             holder.messageTextView.text = message.message
-            holder.timeTextView.text = time
         } else if (holder is OtherMessageViewHolder) {
             holder.messageTextView.text = message.message
-            holder.timeTextView.text = time
         }
+    }
+
+    fun updateMessages(newMessages: List<Message>) {
+        messages = newMessages
+        notifyDataSetChanged()
     }
 }

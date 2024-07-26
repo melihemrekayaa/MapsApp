@@ -15,24 +15,23 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.FragmentRegisterBinding
-import com.example.mapsapp.model.User
 import com.example.mapsapp.viewmodel.AuthViewModel
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class RegisterFragment : Fragment() {
+
     private var _binding: FragmentRegisterBinding? = null
     private val binding get() = _binding!!
     private val authViewModel: AuthViewModel by viewModels()
-    private lateinit var firestore: FirebaseFirestore
     private lateinit var locationManager: LocationManager
     private lateinit var locationListener: LocationListener
     private lateinit var permissionLauncher: ActivityResultLauncher<String>
-    private var currentLocation : GeoPoint ?= null
+    private var currentLocation: GeoPoint? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -45,10 +44,9 @@ class RegisterFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        firestore = FirebaseFirestore.getInstance()
         locationManager = requireActivity().getSystemService(LocationManager::class.java)
 
-        permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()){ granted ->
+        permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) {
                 getUserLocation()
             } else {
@@ -65,7 +63,6 @@ class RegisterFragment : Fragment() {
 
         authViewModel.user.observe(viewLifecycleOwner) { user ->
             if (user != null) {
-                saveUserLocation(uid = user.uid)
                 Toast.makeText(requireContext(), "Kayıt başarılı", Toast.LENGTH_SHORT).show()
                 val action = RegisterFragmentDirections.actionRegisterFragmentToHomeFragment()
                 findNavController().navigate(action)
@@ -73,22 +70,6 @@ class RegisterFragment : Fragment() {
                 Toast.makeText(requireContext(), "Kayıt başarısız.", Toast.LENGTH_SHORT).show()
             }
         }
-    }
-
-    private fun saveUserLocation(uid: String){
-        val userData = hashMapOf(
-            "uid" to uid,
-            "email" to authViewModel.user.value?.email,
-            "location" to currentLocation
-        )
-
-        firestore.collection("users").document(uid).set(userData)
-            .addOnSuccessListener {
-                Toast.makeText(requireContext(), "Location Saved", Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener {
-                Toast.makeText(requireContext(), "Location Couldn't Saved", Toast.LENGTH_SHORT).show()
-            }
     }
 
     private fun getUserLocation() {
@@ -108,7 +89,7 @@ class RegisterFragment : Fragment() {
         }
     }
 
-    private fun registerUser(){
+    private fun registerUser() {
         val email = binding.emailEditTextRegister.text.toString()
         val password = binding.passwordEditTextRegister.text.toString()
 
@@ -119,5 +100,10 @@ class RegisterFragment : Fragment() {
         } else {
             Toast.makeText(requireContext(), "Fill in the blanks", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

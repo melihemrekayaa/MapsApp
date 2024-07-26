@@ -7,26 +7,21 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.FragmentHomeBinding
 import com.example.mapsapp.view.chatbot.ChatBotActivity
-
-import com.example.mapsapp.viewmodel.AuthViewModel
+import com.example.mapsapp.viewmodel.HomeViewModel
 import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.AndroidEntryPoint
 
-
+@AndroidEntryPoint
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
-    private lateinit var auth: FirebaseAuth
-    private lateinit var authViewModel: AuthViewModel
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-    }
+    private val homeViewModel: HomeViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -34,12 +29,10 @@ class HomeFragment : Fragment() {
     ): View? {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val view = binding.root
-        auth = FirebaseAuth.getInstance()
-        authViewModel = ViewModelProvider(this)[AuthViewModel::class.java]
 
-        val userEmail = auth.currentUser?.email
-
-        binding.emailTextView.text = "Welcome, ${userEmail}"
+        homeViewModel.user.observe(viewLifecycleOwner, Observer { user ->
+            binding.emailTextView.text = "Welcome, ${user?.email}"
+        })
 
         binding.mapsBtn.setOnClickListener {
             val action = HomeFragmentDirections.actionHomeFragmentToMapsActivity()
@@ -58,7 +51,7 @@ class HomeFragment : Fragment() {
         }
 
         binding.signOutBtn.setOnClickListener {
-            authViewModel.logout()
+            homeViewModel.logout()
             val action = HomeFragmentDirections.actionHomeFragmentToLoginFragment()
             findNavController().navigate(action)
         }
