@@ -15,8 +15,9 @@ import com.example.mapsapp.view.chatbot.ChatBotActivity
 
 import com.example.mapsapp.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.AndroidEntryPoint
 
-
+@AndroidEntryPoint
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null

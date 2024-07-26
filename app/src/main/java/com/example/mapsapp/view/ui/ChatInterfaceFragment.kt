@@ -14,8 +14,9 @@ import com.example.mapsapp.databinding.FragmentChatInterfaceBinding
 import com.example.mapsapp.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import dagger.hilt.android.AndroidEntryPoint
 
-
+@AndroidEntryPoint
 class ChatInterfaceFragment : Fragment() {
 
     private var _binding : FragmentChatInterfaceBinding? = null
