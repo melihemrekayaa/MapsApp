@@ -1,45 +1,42 @@
-package com.example.mapsapp.viewmodel
+package com.example.mapsapp.repo
 
-import android.widget.Toast
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
-import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import javax.inject.Singleton
 
-@HiltViewModel
-class AuthViewModel @Inject constructor(
-    private val savedStateHandle: SavedStateHandle,
+@Singleton
+class AuthRepository @Inject constructor(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore
-) : ViewModel() {
-    private val _user = MutableLiveData<FirebaseUser?>()
-    val user: LiveData<FirebaseUser?> get() = _user
+) {
 
-    fun register(email: String, password: String, location: GeoPoint) {
+    fun getCurrentUser(): FirebaseUser? {
+        return auth.currentUser
+    }
+
+    fun register(email: String, password: String, location: GeoPoint, onComplete: (FirebaseUser?) -> Unit) {
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    _user.value = auth.currentUser
-                    addUserToFirestore(auth.currentUser, location)
+                    val user = auth.currentUser
+                    addUserToFirestore(user, location)
+                    onComplete(user)
                 } else {
-                    _user.value = null
+                    onComplete(null)
                 }
             }
     }
 
-    fun login(email: String, password: String) {
+    fun login(email: String, password: String, onComplete: (FirebaseUser?) -> Unit) {
         auth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener {
-                if (it.isSuccessful) {
-                    _user.value = auth.currentUser
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onComplete(auth.currentUser)
                 } else {
-                    _user.value = null
+                    onComplete(null)
                 }
             }
     }
@@ -55,12 +52,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun isLogin(): Boolean {
-        return auth.currentUser != null
-    }
-
     fun logout() {
         auth.signOut()
-        _user.value = null
     }
 }
