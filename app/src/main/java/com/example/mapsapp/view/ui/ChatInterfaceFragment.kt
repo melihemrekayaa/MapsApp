@@ -14,6 +14,7 @@ import com.example.mapsapp.databinding.FragmentChatInterfaceBinding
 import com.example.mapsapp.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import dagger.hilt.android.AndroidEntryPoint
 
 
 class ChatInterfaceFragment : Fragment() {
@@ -35,8 +36,7 @@ class ChatInterfaceFragment : Fragment() {
         firestore = FirebaseFirestore.getInstance()
 
         adapter = UsersAdapter(users) { user ->
-            val action = ChatInterfaceFragmentDirections.actionChatInterfaceFragmentToChatFragment(user.uid)
-            findNavController().navigate(action)
+            findNavController().navigate(R.id.action_chatInterfaceFragment_to_chatFragment)
         }
 
         binding.recyclerView.adapter = adapter

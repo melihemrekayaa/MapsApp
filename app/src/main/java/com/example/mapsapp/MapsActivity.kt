@@ -30,6 +30,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.example.mapsapp.util.getRandomColorMarker
+import dagger.hilt.android.AndroidEntryPoint
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 

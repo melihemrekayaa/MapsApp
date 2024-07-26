@@ -10,7 +10,18 @@
         android:layout_height="wrap_content"
         android:background="?attr/colorPrimary"
         android:theme="?attr/actionBarTheme"
-        android:elevation="4dp"/>
+        android:elevation="4dp">
+
+        <ImageButton
+            android:id="@+id/buttonReset"
+            android:layout_width="35dp"
+            android:layout_height="35dp"
+            android:layout_marginEnd="15dp"
+            android:text="Reset Memory"
+            android:textColor="@android:color/white"
+            android:background="@drawable/baseline_refresh_24"
+            android:layout_gravity="end"/>
+    </androidx.appcompat.widget.Toolbar>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewChat"

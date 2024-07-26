@@ -1,30 +1,24 @@
-import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     private const val BASE_URL = "http://10.40.1.248:5000"
 
-    private val gson = GsonBuilder()
-        .setLenient()
-        .create()
-
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
-    }
-
     private val client = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor)
+        .connectTimeout(30, TimeUnit.SECONDS)  // Bağlantı süresi aşımı (30 saniye)
+        .writeTimeout(30, TimeUnit.SECONDS)    // Yazma süresi aşımı (30 saniye)
+        .readTimeout(30, TimeUnit.SECONDS)     // Okuma süresi aşımı (30 saniye)
         .build()
 
     val instance: ChatService by lazy {
         val retrofit = Retrofit.Builder()
             .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create(gson))
             .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
             .build()
+
         retrofit.create(ChatService::class.java)
     }
 }

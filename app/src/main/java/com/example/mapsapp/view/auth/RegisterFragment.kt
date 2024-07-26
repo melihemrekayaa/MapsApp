@@ -23,7 +23,9 @@ import com.example.mapsapp.model.User
 import com.example.mapsapp.viewmodel.AuthViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class RegisterFragment : Fragment() {
     private var _binding: FragmentRegisterBinding? = null
     private val binding get() = _binding!!
@@ -67,8 +69,7 @@ class RegisterFragment : Fragment() {
             if (user != null) {
                 saveUserLocation(uid = user.uid)
                 Toast.makeText(requireContext(), "Kayıt başarılı", Toast.LENGTH_SHORT).show()
-                val action = RegisterFragmentDirections.actionRegisterFragmentToHomeFragment()
-                findNavController().navigate(action)
+                findNavController().navigate(R.id.action_registerFragment_to_homeFragment)
             } else {
                 Toast.makeText(requireContext(), "Kayıt başarısız.", Toast.LENGTH_SHORT).show()
             }

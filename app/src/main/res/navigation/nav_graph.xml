@@ -7,7 +7,8 @@
     <fragment
         android:id="@+id/registerFragment"
         android:name="com.example.mapsapp.view.auth.RegisterFragment"
-        android:label="RegisterFragment">
+        android:label="RegisterFragment"
+        tools:layout="@layout/fragment_register">
         <action
             android:id="@+id/action_registerFragment_to_homeFragment"
             app:destination="@id/homeFragment" />
@@ -32,9 +33,6 @@
         android:label="fragment_home"
         tools:layout="@layout/fragment_home">
         <action
-            android:id="@+id/action_homeFragment_to_mapsActivity"
-            app:destination="@id/mapsActivity" />
-        <action
             android:id="@+id/action_homeFragment_to_chatFragment"
             app:destination="@id/chatFragment" />
         <action
@@ -45,21 +43,10 @@
             app:destination="@id/chatInterfaceFragment" />
     </fragment>
 
-    <activity
-        android:id="@+id/mapsActivity"
-        android:name="com.example.mapsapp.MapsActivity"
-        android:label="activity_maps"
-        tools:layout="@layout/activity_maps">
-
-    </activity>
-
     <fragment
         android:id="@+id/chatFragment"
         android:name="com.example.mapsapp.view.ui.ChatFragment"
         android:label="ChatFragment">
-        <argument
-            android:name="receiverId"
-            app:argType="string" />
     </fragment>
 
     <fragment

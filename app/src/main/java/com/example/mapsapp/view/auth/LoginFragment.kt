@@ -6,15 +6,17 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.lifecycle.ViewModelProvider
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.FragmentLoginBinding
 import com.example.mapsapp.viewmodel.AuthViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class LoginFragment : Fragment() {
 
-    private lateinit var authViewModel: AuthViewModel
+    private val authViewModel: AuthViewModel by viewModels()
     private var _binding: FragmentLoginBinding? = null
     private val binding get() = _binding!!
 
@@ -22,16 +24,18 @@ class LoginFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
-        authViewModel = ViewModelProvider(this)[AuthViewModel::class.java]
         _binding = FragmentLoginBinding.inflate(inflater, container, false)
-        val view = binding.root
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         if (authViewModel.isLogin()) {
             Toast.makeText(requireContext(), "Giriş Başarılı", Toast.LENGTH_SHORT).show()
-            val action = LoginFragmentDirections.actionLoginFragmentToHomeFragment()
-            findNavController().navigate(action)
+            findNavController().navigate(R.id.action_loginFragment_to_homeFragment)
         }
+
         binding.loginBtn.setOnClickListener {
             val email = binding.emailEditText.text.toString()
             val password = binding.passwordEditText.text.toString()
@@ -40,27 +44,21 @@ class LoginFragment : Fragment() {
         }
 
         binding.registerBtn.setOnClickListener {
-            val action = LoginFragmentDirections.actionLoginFragmentToRegisterFragment()
-            findNavController().navigate(action)
+            findNavController().navigate(R.id.action_loginFragment_to_registerFragment)
         }
 
         authViewModel.user.observe(viewLifecycleOwner) { user ->
             if (user != null) {
                 Toast.makeText(requireContext(), "Giriş Başarılı", Toast.LENGTH_SHORT).show()
-                val action =
-                    LoginFragmentDirections.actionLoginFragmentToHomeFragment()
-                findNavController().navigate(action)
-
+                findNavController().navigate(R.id.action_loginFragment_to_homeFragment)
             } else {
                 Toast.makeText(requireContext(), "Giriş Başarısız", Toast.LENGTH_SHORT).show()
             }
         }
-        return view
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
-
 }
