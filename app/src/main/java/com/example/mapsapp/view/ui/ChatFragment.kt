@@ -77,6 +77,19 @@ class ChatFragment : Fragment() {
                 toolbar.title = userName ?: "User"
             })
         }
+        toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_voice_call -> {
+                    startVoiceCall()
+                    true
+                }
+                R.id.action_video_call -> {
+                    startVideoCall()
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
     override fun onDestroyView() {
@@ -84,3 +97,12 @@ class ChatFragment : Fragment() {
         _binding = null
     }
 }
+
+private fun startVideoCall(){
+
+}
+
+private fun startVoiceCall(){
+
+}
+

@@ -2,11 +2,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- İzinler -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.CAPTURE_VIDEO_OUTPUT"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"
+        tools:ignore="ProtectedPermissions" />
 
     <application
         android:name=".MainApplication"
@@ -20,38 +32,48 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MapsApp"
         tools:targetApi="31">
-        <activity
-            android:name=".view.chatbot.ChatBotActivity"
-            android:exported="false" />
 
-        <!--
-             TODO: Before you run your application, you need a Google Maps API key.
-
-             To get one, follow the directions here:
-
-                https://developers.google.com/maps/documentation/android-sdk/get-api-key
-
-             Once you have your API key (it starts with "AIza"), define a new property in your
-             project's local.properties file (e.g. MAPS_API_KEY=Aiza...), and replace the
-             "YOUR_API_KEY" string in this file with "${MAPS_API_KEY}".
-        -->
+        <!-- Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyA5vkl7pITBgSoMbmoR0B_00gdme1_48Lo" />
 
+        <!-- Maps ile ilgili aktiviteler -->
         <activity
             android:name=".MapsActivity"
             android:exported="false"
-            android:label="@string/title_activity_maps" /> <!-- Mapbox access token meta-data -->
+            android:label="@string/title_activity_maps" />
+
         <activity
-            android:name=".MainActivity"
+            android:name=".MapsMainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- ChatBot ile ilgili aktivite -->
+        <activity
+            android:name=".view.chatbot.ChatBotActivity"
+            android:exported="false" />
+
+        <!-- WebRTC ile ilgili aktiviteler -->
+        <activity
+            android:name=".webrtc.ui.WebRTCMainActivity"
+            android:exported="true"/>
+        <activity
+            android:name=".webrtc.ui.CallActivity"
+            android:exported="true"/>
+        <activity
+            android:name=".webrtc.ui.CloseActivity"
+            android:exported="true"/>
+
+        <!-- WebRTC ile ilgili servisler -->
+        <receiver android:name=".webrtc.service.MainServiceReceiver"/>
+        <service
+            android:name=".webrtc.service.MainService"
+            android:foregroundServiceType="mediaProjection"/>
     </application>
 
 </manifest>

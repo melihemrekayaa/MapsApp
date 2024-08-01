@@ -33,4 +33,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "MapsApp"
 include(":app")
- 
+include (":app")
+
+

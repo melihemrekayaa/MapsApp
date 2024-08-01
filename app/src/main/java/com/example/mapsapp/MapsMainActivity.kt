@@ -4,20 +4,20 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
 import androidx.navigation.findNavController
-import androidx.navigation.ui.setupActionBarWithNavController
-import com.example.mapsapp.databinding.ActivityMainBinding
+import com.example.mapsapp.databinding.ActivityMainMapsBinding
+import com.example.mapsapp.databinding.ActivityMapsBinding
 import com.example.mapsapp.view.ui.ChatFragment
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity() {
+class MapsMainActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityMainBinding
+    private lateinit var binding: ActivityMainMapsBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
+        binding = ActivityMainMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         val receiverId = intent.getStringExtra("receiverId")

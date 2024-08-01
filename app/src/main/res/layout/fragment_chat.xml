@@ -15,7 +15,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:background="?attr/colorPrimary"
-        app:titleTextColor="@android:color/white" />
+        app:titleTextColor="@android:color/white"
+        app:menu="@menu/chat_toolbar_menu" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
