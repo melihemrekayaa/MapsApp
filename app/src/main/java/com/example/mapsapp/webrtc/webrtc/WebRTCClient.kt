@@ -6,8 +6,8 @@ import android.media.projection.MediaProjection
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.WindowManager
-import com.codewithkael.firebasevideocall.utils.DataModel
-import com.codewithkael.firebasevideocall.utils.DataModelType
+import com.example.mapsapp.webrtc.utils.DataModel
+import com.example.mapsapp.webrtc.utils.DataModelType
 import com.google.gson.Gson
 import org.webrtc.*
 import javax.inject.Inject

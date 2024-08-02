@@ -1,4 +1,4 @@
-package com.codewithkael.firebasevideocall.utils
+package com.example.mapsapp.webrtc.utils
 
 object FirebaseFieldNames {
     const val STATUS = "status"

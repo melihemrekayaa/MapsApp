@@ -10,14 +10,20 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mapsapp.webrtc.service.MainService
 import com.example.mapsapp.webrtc.service.MainServiceRepository
 import com.example.mapsapp.webrtc.utils.convertToHumanTime
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.ActivityCallBinding
+import com.example.mapsapp.webrtc.adapters.MainRecyclerViewAdapter
+import com.example.mapsapp.webrtc.repository.MainRepository
+import com.example.mapsapp.webrtc.utils.DataModel
+import com.example.mapsapp.webrtc.utils.DataModelType
 import com.example.mapsapp.webrtc.webrtc.RTCAudioManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
+import org.webrtc.IceCandidate
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -36,7 +42,7 @@ class CallActivity : AppCompatActivity(), MainService.EndCallListener {
     @Inject lateinit var serviceRepository: MainServiceRepository
     private lateinit var requestScreenCaptureLauncher:ActivityResultLauncher<Intent>
 
-    private lateinit var views: ActivityCallBinding
+    private lateinit var views:ActivityCallBinding
 
     override fun onStart() {
         super.onStart()
@@ -74,11 +80,11 @@ class CallActivity : AppCompatActivity(), MainService.EndCallListener {
             callTitleTv.text = "In call with $target"
             CoroutineScope(Dispatchers.IO).launch {
                 for (i in 0..3600){
-                   delay(1000)
-                   withContext(Dispatchers.Main){
-                       //convert this int to human readable time
-                       callTimerTv.text = i.convertToHumanTime()
-                   }
+                    delay(1000)
+                    withContext(Dispatchers.Main){
+                        //convert this int to human readable time
+                        callTimerTv.text = i.convertToHumanTime()
+                    }
                 }
             }
 
@@ -110,24 +116,24 @@ class CallActivity : AppCompatActivity(), MainService.EndCallListener {
     private fun setupScreenCasting() {
         views.apply {
             screenShareButton.setOnClickListener {
-               if (!isScreenCasting){
-                   //we have to start casting
-                   AlertDialog.Builder(this@CallActivity)
-                       .setTitle("Screen Casting")
-                       .setMessage("You sure to start casting ?")
-                       .setPositiveButton("Yes"){dialog,_ ->
-                           //start screen casting process
-                           startScreenCapture()
-                           dialog.dismiss()
-                       }.setNegativeButton("No") {dialog,_ ->
-                           dialog.dismiss()
-                       }.create().show()
-               }else{
-                   //we have to end screen casting
-                   isScreenCasting = false
-                   updateUiToScreenCaptureIsOff()
-                   serviceRepository.toggleScreenShare(false)
-               }
+                if (!isScreenCasting){
+                    //we have to start casting
+                    AlertDialog.Builder(this@CallActivity)
+                        .setTitle("Screen Casting")
+                        .setMessage("You sure to start casting ?")
+                        .setPositiveButton("Yes"){dialog,_ ->
+                            //start screen casting process
+                            startScreenCapture()
+                            dialog.dismiss()
+                        }.setNegativeButton("No") {dialog,_ ->
+                            dialog.dismiss()
+                        }.create().show()
+                }else{
+                    //we have to end screen casting
+                    isScreenCasting = false
+                    updateUiToScreenCaptureIsOff()
+                    serviceRepository.toggleScreenShare(false)
+                }
             }
 
         }
@@ -237,3 +243,5 @@ class CallActivity : AppCompatActivity(), MainService.EndCallListener {
 
     }
 }
+
+

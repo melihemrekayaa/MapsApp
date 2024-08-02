@@ -1,4 +1,4 @@
-package com.codewithkael.firebasevideocall.utils
+package com.example.mapsapp.webrtc.utils
 
 enum class DataModelType {
     StartAudioCall,StartVideoCall,Offer,Answer,IceCandidates,EndCall
@@ -6,7 +6,7 @@ enum class DataModelType {
 data class DataModel(
     val sender:String?=null,
     val target:String,
-    val type:DataModelType,
+    val type: DataModelType,
     val data:String?=null,
     val timeStamp:Long = System.currentTimeMillis()
 )

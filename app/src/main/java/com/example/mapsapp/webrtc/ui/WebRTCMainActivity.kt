@@ -10,8 +10,8 @@ import com.example.mapsapp.webrtc.adapters.MainRecyclerViewAdapter
 import com.example.mapsapp.webrtc.repository.MainRepository
 import com.example.mapsapp.webrtc.service.MainService
 import com.example.mapsapp.webrtc.service.MainServiceRepository
-import com.codewithkael.firebasevideocall.utils.DataModel
-import com.codewithkael.firebasevideocall.utils.DataModelType
+import com.example.mapsapp.webrtc.utils.DataModel
+import com.example.mapsapp.webrtc.utils.DataModelType
 import com.example.mapsapp.databinding.ActivityMainWebrtcBinding
 import com.example.mapsapp.webrtc.utils.getCameraAndMicPermission
 import dagger.hilt.android.AndroidEntryPoint
@@ -132,6 +132,10 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
 
             }
         }
+    }
+
+    override fun onError(error: String) {
+        TODO("Not yet implemented")
     }
 
 

@@ -11,9 +11,9 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.mapsapp.webrtc.repository.MainRepository
 import com.example.mapsapp.webrtc.service.MainServiceActions.*
-import com.codewithkael.firebasevideocall.utils.DataModel
-import com.codewithkael.firebasevideocall.utils.DataModelType
-import com.codewithkael.firebasevideocall.utils.isValid
+import com.example.mapsapp.webrtc.utils.DataModel
+import com.example.mapsapp.webrtc.utils.DataModelType
+import com.example.mapsapp.webrtc.utils.isValid
 import com.example.mapsapp.R
 import com.example.mapsapp.webrtc.webrtc.RTCAudioManager
 import dagger.hilt.android.AndroidEntryPoint
@@ -34,7 +34,6 @@ class MainService : Service(), MainRepository.Listener {
     private lateinit var notificationManager: NotificationManager
     private lateinit var rtcAudioManager: RTCAudioManager
     private var isPreviousCallStateVideo = true
-
 
     companion object {
         var listener: Listener? = null
@@ -112,8 +111,6 @@ class MainService : Service(), MainRepository.Listener {
             rtcAudioManager.selectAudioDevice(it)
             Log.d(TAG, "handleToggleAudioDevice: $it")
         }
-
-
     }
 
     private fun handleToggleVideo(incomingIntent: Intent) {
@@ -133,9 +130,13 @@ class MainService : Service(), MainRepository.Listener {
 
     private fun handleEndCall() {
         //1. we have to send a signal to other peer that call is ended
-        mainRepository.sendEndCall()
-        //2.end out call process and restart our webrtc client
-        endCallAndRestartRepository()
+        if (mainRepository.callTarget != null) {
+            mainRepository.sendEndCall()
+            //2.end out call process and restart our webrtc client
+            endCallAndRestartRepository()
+        } else {
+            listener?.onError("Target is null")
+        }
     }
 
     private fun endCallAndRestartRepository(){
@@ -149,7 +150,7 @@ class MainService : Service(), MainRepository.Listener {
         val isVideoCall = incomingIntent.getBooleanExtra("isVideoCall",true)
         val target = incomingIntent.getStringExtra("target")
         this.isPreviousCallStateVideo = isVideoCall
-        mainRepository.setTarget(target!!)
+        mainRepository.updateCallTarget(target!!)
         //initialize our widgets and start streaming our video and audio source
         //and get prepared for call
         mainRepository.initLocalSurfaceView(localSurfaceView!!,isVideoCall)
@@ -166,15 +167,14 @@ class MainService : Service(), MainRepository.Listener {
     private fun handleStartService(incomingIntent: Intent) {
         //start our foreground service
         if (!isServiceRunning) {
-            isServiceRunning = true
             username = incomingIntent.getStringExtra("username")
-            startServiceWithNotification()
+            startServiceWithNotification() // Öncelikle bu çağrıyı yaparak servisi foreground olarak başlat
+            isServiceRunning = true
 
             //setup my clients
             mainRepository.listener = this
             mainRepository.initFirebase()
             mainRepository.initWebrtcClient(username!!)
-
         }
     }
 
@@ -210,7 +210,7 @@ class MainService : Service(), MainRepository.Listener {
             when (data.type) {
                 DataModelType.StartVideoCall,
                 DataModelType.StartAudioCall -> {
-                        listener?.onCallReceived(data)
+                    listener?.onCallReceived(data)
                 }
                 else -> Unit
             }
@@ -222,8 +222,15 @@ class MainService : Service(), MainRepository.Listener {
         endCallAndRestartRepository()
     }
 
+    override fun onError(error: String) {
+        // Handle error message
+        Log.e(TAG, "Error: $error")
+        stopSelf() // Stop the service if there's an error
+    }
+
     interface Listener {
         fun onCallReceived(model: DataModel)
+        fun onError(error: String) // Yeni onError metodu
     }
 
     interface EndCallListener {
