@@ -1,10 +1,8 @@
 package com.example.mapsapp.webrtc.repository
 
-import android.content.Intent
 import com.example.mapsapp.webrtc.firebaseClient.FirebaseClient
 import com.example.mapsapp.webrtc.utils.DataModel
 import com.example.mapsapp.webrtc.utils.DataModelType
-import com.example.mapsapp.webrtc.utils.DataModelType.*
 import com.example.mapsapp.webrtc.utils.UserStatus
 import com.example.mapsapp.webrtc.webrtc.MyPeerObserver
 import com.example.mapsapp.webrtc.webrtc.WebRTCClient
@@ -20,7 +18,8 @@ class MainRepository @Inject constructor(
     private val gson: Gson
 ) : WebRTCClient.Listener {
 
-    var callTarget: String? = null
+    private var target: String? = null
+    private var callId: String? = null
     var listener: Listener? = null
     private var remoteView: SurfaceViewRenderer? = null
 
@@ -32,65 +31,53 @@ class MainRepository @Inject constructor(
         firebaseClient.observeUsersStatus(status)
     }
 
-    fun initFirebase() {
-        firebaseClient.subscribeForLatestEvent(object : FirebaseClient.Listener {
-            override fun onLatestEventReceived(event: DataModel) {
-                listener?.onLatestEventReceived(event)
-                when (event.type) {
-                    Offer -> {
-                        webRTCClient.onRemoteSessionReceived(
-                            SessionDescription(
-                                SessionDescription.Type.OFFER,
-                                event.data.toString()
-                            )
-                        )
-                        webRTCClient.answer(callTarget!!)
-                    }
-                    Answer -> {
-                        webRTCClient.onRemoteSessionReceived(
-                            SessionDescription(
-                                SessionDescription.Type.ANSWER,
-                                event.data.toString()
-                            )
-                        )
-                    }
-                    IceCandidates -> {
-                        val candidate: IceCandidate? = try {
-                            gson.fromJson(event.data.toString(), IceCandidate::class.java)
-                        } catch (e: Exception) {
-                            null
-                        }
-                        candidate?.let {
-                            webRTCClient.addIceCandidateToPeer(it)
-                        }
-                    }
-                    EndCall -> {
-                        listener?.endCall()
-                    }
-                    else -> Unit
-                }
+    fun placeCall(caller: String, callee: String, callback: (Boolean) -> Unit) {
+        val callId = "$caller-$callee-${System.currentTimeMillis()}"
+        this.callId = callId
+        firebaseClient.placeCall(caller, callee, callId) { success ->
+            if (success) {
+                observeCallStatus(callId)
             }
-
-        })
+            callback(success)
+        }
     }
 
-    fun sendConnectionRequest(target: String, isVideoCall: Boolean, success: (Boolean) -> Unit) {
-        firebaseClient.sendMessageToOtherClient(
-            DataModel(
-                type = if (isVideoCall) StartVideoCall else StartAudioCall,
-                target = target
-            ), success
-        )
+    fun answerCall(callId: String) {
+        this.callId = callId
+        firebaseClient.answerCall(callId)
+        startCall()
     }
 
-    fun updateCallTarget(target: String) {
-        this.callTarget = target
+    fun endCall() {
+        callId?.let {
+            firebaseClient.endCall(it)
+            webRTCClient.closeConnection()
+            changeMyStatus(UserStatus.ONLINE)
+        }
+    }
+
+    private fun observeCallStatus(callId: String) {
+        firebaseClient.observeCallStatus(callId) { status ->
+            when (status) {
+                "accepted" -> startCall()
+                "ended" -> listener?.endCall()
+            }
+        }
+    }
+
+    fun observeIncomingCalls(username: String, listener: (String, String) -> Unit) {
+        firebaseClient.observeIncomingCalls(username) { callId, caller ->
+            listener(callId, caller)
+        }
+    }
+
+    fun setTarget(target: String) {
+        this.target = target
     }
 
     interface Listener {
         fun onLatestEventReceived(data: DataModel)
         fun endCall()
-        fun onError(error: String) // Yeni onError metodu
     }
 
     fun initWebrtcClient(username: String) {
@@ -104,22 +91,19 @@ class MainRepository @Inject constructor(
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
-
             }
 
             override fun onIceCandidate(p0: IceCandidate?) {
                 super.onIceCandidate(p0)
                 p0?.let {
-                    webRTCClient.sendIceCandidate(callTarget!!, it)
+                    webRTCClient.sendIceCandidate(target!!, it)
                 }
             }
 
             override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
                 super.onConnectionChange(newState)
                 if (newState == PeerConnection.PeerConnectionState.CONNECTED) {
-                    // 1. change my status to in call
                     changeMyStatus(UserStatus.IN_CALL)
-                    // 2. clear latest event inside my user section in firebase database
                     firebaseClient.clearLatestEvent()
                 }
             }
@@ -136,37 +120,17 @@ class MainRepository @Inject constructor(
     }
 
     fun startCall() {
-        webRTCClient.call(callTarget!!)
-    }
-
-    fun endCall() {
-        if (firebaseClient.currentUsername != null) {
-            webRTCClient.closeConnection()
-            changeMyStatus(UserStatus.ONLINE)
-        } else {
-            listener?.onError("Current username is null")
-        }
+        webRTCClient.call(target!!)
     }
 
     fun sendEndCall() {
-        if (firebaseClient.currentUsername != null) {
-            onTransferEventToSocket(
-                DataModel(
-                    type = EndCall,
-                    target = callTarget!!
-                )
-            )
-        } else {
-            listener?.onError("Current username is null")
+        callId?.let {
+            firebaseClient.endCall(it)
         }
     }
 
     private fun changeMyStatus(status: UserStatus) {
-        if (firebaseClient.currentUsername != null) {
-            firebaseClient.changeMyStatus(status)
-        } else {
-            listener?.onError("Current username is null")
-        }
+        firebaseClient.changeMyStatus(status)
     }
 
     fun toggleAudio(shouldBeMuted: Boolean) {
@@ -181,28 +145,50 @@ class MainRepository @Inject constructor(
         webRTCClient.switchCamera()
     }
 
-
-    fun setScreenCaptureIntent(screenPermissionIntent: Intent) {
-        webRTCClient.setPermissionIntent(screenPermissionIntent)
-    }
-
-    fun toggleScreenShare(isStarting: Boolean) {
-        if (isStarting) {
-            webRTCClient.startScreenCapturing()
-        } else {
-            webRTCClient.stopScreenCapturing()
-        }
-    }
-
-    fun logOff(function: () -> Unit) {
-        if (firebaseClient.currentUsername != null) {
-            firebaseClient.logOff(function)
-        } else {
-            function()
-        }
+    fun initFirebase() {
+        firebaseClient.subscribeForLatestEvent(object : FirebaseClient.Listener {
+            override fun onLatestEventReceived(event: DataModel) {
+                listener?.onLatestEventReceived(event)
+                when (event.eventType) {
+                    DataModelType.Offer.name -> {
+                        webRTCClient.onRemoteSessionReceived(
+                            SessionDescription(
+                                SessionDescription.Type.OFFER,
+                                event.data
+                            )
+                        )
+                        webRTCClient.answer(target!!)
+                    }
+                    DataModelType.Answer.name -> {
+                        webRTCClient.onRemoteSessionReceived(
+                            SessionDescription(
+                                SessionDescription.Type.ANSWER,
+                                event.data
+                            )
+                        )
+                    }
+                    DataModelType.IceCandidates.name -> {
+                        val candidate: IceCandidate? = try {
+                            gson.fromJson(event.data, IceCandidate::class.java)
+                        } catch (e: Exception) {
+                            null
+                        }
+                        candidate?.let {
+                            webRTCClient.addIceCandidateToPeer(it)
+                        }
+                    }
+                    DataModelType.EndCall.name -> {
+                        listener?.endCall()
+                    }
+                    else -> Unit
+                }
+            }
+        })
     }
 
     override fun onTransferEventToSocket(data: DataModel) {
-        listener?.onLatestEventReceived(data)
+        firebaseClient.sendMessageToOtherClient(data) {}
     }
+
+    fun logOff(function: () -> Unit) = firebaseClient.logOff(function)
 }

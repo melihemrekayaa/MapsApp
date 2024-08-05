@@ -11,13 +11,19 @@ import javax.inject.Inject
 class MainServiceReceiver : BroadcastReceiver() {
 
     @Inject lateinit var serviceRepository: MainServiceRepository
+
     override fun onReceive(context: Context?, intent: Intent?) {
-        if (intent?.action == "ACTION_EXIT"){
-            //we want to exit the whole application
+        if (intent?.action == "ACTION_EXIT") {
+            // Hizmeti durdurmak ve uygulamayı kapatmak için gerekli işlemleri yap
             serviceRepository.stopService()
-            context?.startActivity(Intent(context, CloseActivity::class.java))
 
+            context?.let {
+                // CloseActivity'i başlat ve mevcut activity yığınını temizle
+                val closeIntent = Intent(it, CloseActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                }
+                it.startActivity(closeIntent)
+            }
         }
-
     }
 }

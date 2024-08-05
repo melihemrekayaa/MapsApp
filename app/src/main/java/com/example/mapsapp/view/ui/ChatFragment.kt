@@ -1,6 +1,7 @@
 package com.example.mapsapp.view.ui
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -8,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
@@ -16,12 +18,11 @@ import com.example.mapsapp.R
 import com.example.mapsapp.adapter.ChatAdapter
 import com.example.mapsapp.databinding.FragmentChatBinding
 import com.example.mapsapp.viewmodel.ChatViewModel
-import com.example.mapsapp.webrtc.ui.CallActivity
-import com.example.mapsapp.webrtc.webrtc.MyPeerObserver
-import com.example.mapsapp.webrtc.webrtc.WebRTCClient
+import com.example.mapsapp.webrtc.repository.MainRepository
+import com.example.mapsapp.webrtc.ui.WebRTCMainActivity
+import com.example.mapsapp.webrtc.utils.getCameraAndMicPermission
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
-import org.webrtc.IceCandidate
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -34,7 +35,7 @@ class ChatFragment : Fragment() {
     private var receiverId: String? = null
 
     @Inject
-    lateinit var webRTCClient: WebRTCClient
+    lateinit var mainRepository: MainRepository
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -107,42 +108,82 @@ class ChatFragment : Fragment() {
     }
 
     private fun startVoiceCall() {
-        receiverId?.let { receiverId ->
-            val senderUsername = getUsernameFromEmail(auth.currentUser?.email ?: "")
-            val receiverUsername = getUsernameFromEmail(receiverId)
-            webRTCClient.initializeWebrtcClient(senderUsername, object : MyPeerObserver() {
-                override fun onIceCandidate(candidate: IceCandidate?) {
-                    super.onIceCandidate(candidate)
-                    candidate?.let { webRTCClient.sendIceCandidate(receiverUsername, it) }
+        getCameraAndMicPermission {
+            receiverId?.let { receiverId ->
+                val senderUsername = getUsernameFromEmail(auth.currentUser?.email ?: "")
+                val receiverUsername = getUsernameFromEmail(receiverId)
+                mainRepository.placeCall(senderUsername, receiverUsername) { success ->
+                    if (success) {
+                        startActivity(Intent(context, WebRTCMainActivity::class.java).apply {
+                            putExtra("target", receiverUsername)
+                            putExtra("isVideoCall", false)
+                            putExtra("isCaller", true)
+                            putExtra("username", senderUsername)  // Burada username'i geçiriyoruz
+                        })
+                    } else {
+                        Toast.makeText(context, "Voice call failed", Toast.LENGTH_SHORT).show()
+                    }
                 }
-            })
-            webRTCClient.call(receiverUsername)
-            startActivity(Intent(context, CallActivity::class.java).apply {
-                putExtra("target", receiverUsername)
-                putExtra("isVideoCall", false)
-                putExtra("isCaller", true)
-            })
+            }
         }
     }
 
     private fun startVideoCall() {
-        receiverId?.let { receiverId ->
-            val senderUsername = getUsernameFromEmail(auth.currentUser?.email ?: "")
-            val receiverUsername = getUsernameFromEmail(receiverId)
-            webRTCClient.initializeWebrtcClient(senderUsername, object : MyPeerObserver() {
-                override fun onIceCandidate(candidate: IceCandidate?) {
-                    super.onIceCandidate(candidate)
-                    candidate?.let { webRTCClient.sendIceCandidate(receiverUsername, it) }
+        getCameraAndMicPermission {
+            receiverId?.let { receiverId ->
+                val senderUsername = getUsernameFromEmail(auth.currentUser?.email ?: "")
+                val receiverUsername = getUsernameFromEmail(receiverId)
+                mainRepository.placeCall(senderUsername, receiverUsername) { success ->
+                    if (success) {
+                        startActivity(Intent(context, WebRTCMainActivity::class.java).apply {
+                            putExtra("target", receiverUsername)
+                            putExtra("isVideoCall", true)
+                            putExtra("isCaller", true)
+                            putExtra("username", senderUsername)  // Burada username'i geçiriyoruz
+                        })
+                    } else {
+                        Toast.makeText(context, "Video call failed", Toast.LENGTH_SHORT).show()
+                    }
                 }
-            })
-            webRTCClient.call(receiverUsername)
-            startActivity(Intent(context, CallActivity::class.java).apply {
-                putExtra("target", receiverUsername)
-                putExtra("isVideoCall", true)
-                putExtra("isCaller", true)
-            })
+            }
         }
     }
+
+
+    private fun getCameraAndMicPermission(onPermissionGranted: () -> Unit) {
+        val permissions = arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO)
+
+        val permissionsToRequest = permissions.filter {
+            ContextCompat.checkSelfPermission(requireContext(), it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (permissionsToRequest.isEmpty()) {
+            onPermissionGranted()
+        } else {
+            requestPermissions(permissionsToRequest.toTypedArray(), REQUEST_CODE_PERMISSIONS)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_PERMISSIONS) {
+            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                onPermissionGranted?.invoke()
+            } else {
+                Toast.makeText(requireContext(), "Permissions not granted by the user.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    companion object {
+        private const val REQUEST_CODE_PERMISSIONS = 10
+        private var onPermissionGranted: (() -> Unit)? = null
+    }
+
 
     private fun getUsernameFromEmail(email: String): String {
         return email.substringBefore("@")

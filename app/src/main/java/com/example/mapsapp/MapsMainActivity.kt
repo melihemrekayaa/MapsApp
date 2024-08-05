@@ -20,23 +20,8 @@ class MapsMainActivity : AppCompatActivity() {
         binding = ActivityMainMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val receiverId = intent.getStringExtra("receiverId")
-        if (receiverId != null) {
 
-            val chatFragment = ChatFragment().apply {
-                arguments = Bundle().apply {
-                    putString("receiverId", receiverId)
-                }
-            }
-            supportFragmentManager.commit {
-                replace(R.id.nav_host_fragment, chatFragment)
-                addToBackStack(null)
-            }
-        }
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        val navController = findNavController(R.id.nav_host_fragment)
-        return navController.navigateUp() || super.onSupportNavigateUp()
-    }
+
 }

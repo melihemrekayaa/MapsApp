@@ -5,21 +5,25 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.fragment.app.commit
+import androidx.navigation.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.codewithkael.firebasevideocall.service.MainService
+import com.example.mapsapp.R
 import com.example.mapsapp.webrtc.adapters.MainRecyclerViewAdapter
 import com.example.mapsapp.webrtc.repository.MainRepository
-import com.example.mapsapp.webrtc.service.MainService
 import com.example.mapsapp.webrtc.service.MainServiceRepository
 import com.example.mapsapp.webrtc.utils.DataModel
 import com.example.mapsapp.webrtc.utils.DataModelType
 import com.example.mapsapp.databinding.ActivityMainWebrtcBinding
+import com.example.mapsapp.view.ui.ChatFragment
 import com.example.mapsapp.webrtc.utils.getCameraAndMicPermission
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener, MainService.Listener {
-    private val TAG = "MainActivity"
+    private val TAG = "WebRTCMainActivity"
 
     private lateinit var views: ActivityMainWebrtcBinding
     private var username: String? = null
@@ -34,16 +38,43 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
         super.onCreate(savedInstanceState)
         views = ActivityMainWebrtcBinding.inflate(layoutInflater)
         setContentView(views.root)
+
+        // Intent ile gelen username değerini alalım ve loglayalım
+        username = intent.getStringExtra("username")
+        Log.d(TAG, "Username received: $username")
+
+        if (username == null) {
+            finish()
+            return
+        }
+
         init()
+        val receiverId = intent.getStringExtra("receiverId")
+        if (receiverId != null) {
+            val chatFragment = ChatFragment().apply {
+                arguments = Bundle().apply {
+                    putString("receiverId", receiverId)
+                }
+            }
+            supportFragmentManager.commit {
+                replace(R.id.nav_host_fragment, chatFragment)
+                addToBackStack(null)
+            }
+        }
     }
 
     private fun init() {
-        username = intent.getStringExtra("username")
-        if (username == null) finish()
-        //1. observe other users status
+        // Loglama ekleyelim
+        Log.d(TAG, "Initializing with username: $username")
+
+        // 1. Observe other users status
         subscribeObservers()
-        //2. start foreground service to listen negotiations and calls.
+        // 2. Start foreground service to listen negotiations and calls.
         startMyService()
+        // 3. Observe incoming calls
+        mainRepository.observeIncomingCalls(username!!) { callId, caller ->
+            showIncomingCallDialog(callId, caller)
+        }
     }
 
     private fun subscribeObservers() {
@@ -59,44 +90,44 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
         mainAdapter = MainRecyclerViewAdapter(this)
         val layoutManager = LinearLayoutManager(this)
         views.mainRecyclerView.apply {
-            setLayoutManager(layoutManager)
+            this.layoutManager = layoutManager
             adapter = mainAdapter
         }
     }
 
     private fun startMyService() {
-        mainServiceRepository.startService(username!!)
+        username?.let {
+            Log.d(TAG, "Starting service with username: $it")
+            mainServiceRepository.startService(it)
+        }
     }
 
     override fun onVideoCallClicked(username: String) {
-        //check if permission of mic and camera is taken
         getCameraAndMicPermission {
-            mainRepository.sendConnectionRequest(username, true) {
-                if (it){
-                    //we have to start video call
-                    //we wanna create an intent to move to call activity
-                    startActivity(Intent(this, CallActivity::class.java).apply {
-                        putExtra("target",username)
-                        putExtra("isVideoCall",true)
-                        putExtra("isCaller",true)
+            mainRepository.placeCall(this.username!!, username) {
+                if (it) {
+                    // Start video call
+                    startActivity(Intent(this, WebRTCMainActivity::class.java).apply {
+                        putExtra("target", username)
+                        putExtra("isVideoCall", true)
+                        putExtra("isCaller", true)
+                        putExtra("username", this@WebRTCMainActivity.username)  // username'i geçiriyoruz
                     })
-
                 }
             }
-
         }
     }
 
     override fun onAudioCallClicked(username: String) {
         getCameraAndMicPermission {
-            mainRepository.sendConnectionRequest(username, false) {
-                if (it){
-                    //we have to start audio call
-                    //we wanna create an intent to move to call activity
-                    startActivity(Intent(this, CallActivity::class.java).apply {
-                        putExtra("target",username)
-                        putExtra("isVideoCall",false)
-                        putExtra("isCaller",true)
+            mainRepository.placeCall(this.username!!, username) {
+                if (it) {
+                    // Start audio call
+                    startActivity(Intent(this, WebRTCMainActivity::class.java).apply {
+                        putExtra("target", username)
+                        putExtra("isVideoCall", false)
+                        putExtra("isCaller", true)
+                        putExtra("username", this@WebRTCMainActivity.username)  // username'i geçiriyoruz
                     })
                 }
             }
@@ -118,25 +149,52 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
                 acceptButton.setOnClickListener {
                     getCameraAndMicPermission {
                         incomingCallLayout.isVisible = false
-                        //create an intent to go to video call activity
-                        startActivity(Intent(this@WebRTCMainActivity, CallActivity::class.java).apply {
-                            putExtra("target",model.sender)
-                            putExtra("isVideoCall",isVideoCall)
-                            putExtra("isCaller",false)
+                        // Create an intent to go to video call activity
+                        startActivity(Intent(this@WebRTCMainActivity, WebRTCMainActivity::class.java).apply {
+                            putExtra("target", model.sender)
+                            putExtra("isVideoCall", isVideoCall)
+                            putExtra("isCaller", false)
+                            putExtra("username", username)  // username'i geçiriyoruz
                         })
                     }
                 }
                 declineButton.setOnClickListener {
                     incomingCallLayout.isVisible = false
+                    mainRepository.endCall()
                 }
-
             }
         }
     }
 
-    override fun onError(error: String) {
-        TODO("Not yet implemented")
+    private fun showIncomingCallDialog(callId: String, caller: String) {
+        runOnUiThread {
+            views.apply {
+                val isVideoCallText = "Video"
+                incomingCallTitleTv.text = "$caller is $isVideoCallText Calling you"
+                incomingCallLayout.isVisible = true
+                acceptButton.setOnClickListener {
+                    getCameraAndMicPermission {
+                        incomingCallLayout.isVisible = false
+                        mainRepository.answerCall(callId)
+                        // Start video call
+                        startActivity(Intent(this@WebRTCMainActivity, WebRTCMainActivity::class.java).apply {
+                            putExtra("target", caller)
+                            putExtra("isVideoCall", true)
+                            putExtra("isCaller", false)
+                            putExtra("username", username)  // username'i geçiriyoruz
+                        })
+                    }
+                }
+                declineButton.setOnClickListener {
+                    incomingCallLayout.isVisible = false
+                    mainRepository.endCall()
+                }
+            }
+        }
     }
 
-
+    override fun onSupportNavigateUp(): Boolean {
+        val navController = findNavController(R.id.nav_host_fragment)
+        return navController.navigateUp() || super.onSupportNavigateUp()
+    }
 }
