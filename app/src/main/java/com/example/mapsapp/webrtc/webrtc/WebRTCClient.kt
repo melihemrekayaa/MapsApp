@@ -100,9 +100,9 @@ class WebRTCClient @Inject constructor(
                         super.onSetSuccess()
                         listener?.onTransferEventToSocket(
                             DataModel(type = DataModelType.Offer,
-                            sender = username,
-                            target = target,
-                            data = desc?.description)
+                                sender = username,
+                                target = target,
+                                data = desc?.description)
                         )
                     }
                 },desc)
@@ -119,9 +119,9 @@ class WebRTCClient @Inject constructor(
                         super.onSetSuccess()
                         listener?.onTransferEventToSocket(
                             DataModel(type = DataModelType.Answer,
-                            sender = username,
-                            target = target,
-                            data = desc?.description)
+                                sender = username,
+                                target = target,
+                                data = desc?.description)
                         )
                     }
                 },desc)
@@ -252,8 +252,8 @@ class WebRTCClient @Inject constructor(
     }
 
     fun startScreenCapturing() {
-       val displayMetrics = DisplayMetrics()
-       val windowsManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val displayMetrics = DisplayMetrics()
+        val windowsManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         windowsManager.defaultDisplay.getMetrics(displayMetrics)
 
         val screenWidthPixels = displayMetrics.widthPixels

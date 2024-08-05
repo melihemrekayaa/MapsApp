@@ -50,7 +50,7 @@ public class ProximitySensor implements SensorEventListener {
     /**
      * Construction
      */
-    public static ProximitySensor create(Context context, Runnable sensorStateListener) {
+    static ProximitySensor create(Context context, Runnable sensorStateListener) {
         return new ProximitySensor(context, sensorStateListener);
     }
 

@@ -20,7 +20,6 @@ import android.content.pm.PackageManager;
 import android.media.AudioDeviceInfo;
 import android.preference.PreferenceManager;
 
-
 import org.webrtc.ThreadUtils;
 
 import java.util.Collections;
@@ -76,6 +75,7 @@ public class RTCAudioManager {
     // Callback method for changes in audio focus.
     private android.media.AudioManager.OnAudioFocusChangeListener audioFocusChangeListener;
 
+
     private RTCAudioManager(Context context) {
         ThreadUtils.checkIsOnMainThread();
         apprtcContext = context;
@@ -95,14 +95,10 @@ public class RTCAudioManager {
         // Create and initialize the proximity sensor.
         // Tablet devices (e.g. Nexus 7) does not support proximity sensors.
         // Note that, the sensor will not be active until start() has been called.
-        proximitySensor = ProximitySensor.create(context, new Runnable() {
-            // This method will be called each time a state change is detected.
-            // Example: user holds his hand over the device (closer than ~5 cm),
-            // or removes his hand from the device.
-            public void run() {
-                onProximitySensorChangedState();
-            }
-        });
+        // This method will be called each time a state change is detected.
+// Example: user holds his hand over the device (closer than ~5 cm),
+// or removes his hand from the device.
+        proximitySensor = ProximitySensor.create(context, this::onProximitySensorChangedState);
 
     }
 
