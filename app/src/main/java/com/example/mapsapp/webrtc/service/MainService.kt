@@ -1,4 +1,4 @@
-package com.codewithkael.firebasevideocall.service
+package com.example.mapsapp.webrtc.service
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -11,8 +11,6 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.mapsapp.R
 import com.example.mapsapp.webrtc.repository.MainRepository
-import com.example.mapsapp.webrtc.service.MainServiceActions
-import com.example.mapsapp.webrtc.service.MainServiceReceiver
 import com.example.mapsapp.webrtc.utils.DataModel
 import com.example.mapsapp.webrtc.utils.DataModelType
 import com.example.mapsapp.webrtc.utils.isValid

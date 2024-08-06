@@ -10,9 +10,12 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import com.codewithkael.firebasevideocall.service.MainService
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Observer
+import com.example.mapsapp.webrtc.service.MainService
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.FragmentCallBinding
+import com.example.mapsapp.viewmodel.ChatViewModel
 import com.example.mapsapp.webrtc.service.MainServiceRepository
 import com.example.mapsapp.webrtc.utils.convertToHumanTime
 import com.example.mapsapp.webrtc.webrtc.RTCAudioManager
@@ -31,6 +34,7 @@ class CallFragment : Fragment(), MainService.EndCallListener {
     private var isCameraMuted = false
     private var isSpeakerMode = true
     private var isScreenCasting = false
+    private val chatViewModel: ChatViewModel by viewModels()
 
     @Inject
     lateinit var serviceRepository: MainServiceRepository
@@ -49,6 +53,11 @@ class CallFragment : Fragment(), MainService.EndCallListener {
                 serviceRepository.toggleScreenShare(true)
             }
         }
+
+        chatViewModel.messages.observe(viewLifecycleOwner, Observer { messages ->
+            println()
+
+        })
     }
 
     override fun onCreateView(

@@ -8,7 +8,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.commit
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.codewithkael.firebasevideocall.service.MainService
+import com.example.mapsapp.webrtc.service.MainService
 import com.example.mapsapp.R
 import com.example.mapsapp.webrtc.adapters.MainRecyclerViewAdapter
 import com.example.mapsapp.webrtc.repository.MainRepository
