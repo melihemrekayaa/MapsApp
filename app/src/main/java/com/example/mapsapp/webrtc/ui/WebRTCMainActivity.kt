@@ -8,15 +8,15 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.commit
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.mapsapp.webrtc.service.MainService
 import com.example.mapsapp.R
+import com.example.mapsapp.databinding.ActivityMainWebrtcBinding
+import com.example.mapsapp.view.ui.ChatFragment
 import com.example.mapsapp.webrtc.adapters.MainRecyclerViewAdapter
 import com.example.mapsapp.webrtc.repository.MainRepository
+import com.example.mapsapp.webrtc.service.MainService
 import com.example.mapsapp.webrtc.service.MainServiceRepository
 import com.example.mapsapp.webrtc.utils.DataModel
 import com.example.mapsapp.webrtc.utils.DataModelType
-import com.example.mapsapp.databinding.ActivityMainWebrtcBinding
-import com.example.mapsapp.view.ui.ChatFragment
 import com.example.mapsapp.webrtc.utils.getCameraAndMicPermission
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -70,7 +70,7 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
         // 1. Observe other users status
         subscribeObservers()
         // 2. Start foreground service to listen negotiations and calls.
-        startMyService()
+       // startMyService()
         // 3. Observe incoming calls
         mainRepository.observeIncomingCalls(username!!) { callId, caller ->
             showIncomingCallDialog(callId, caller)
@@ -80,7 +80,8 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
     private fun subscribeObservers() {
         setupRecyclerView()
         MainService.listener = this
-        mainRepository.observeUsersStatus {
+        val currentUserId = username ?: return
+        mainRepository.observeUsersStatus(currentUserId) {
             Log.d(TAG, "subscribeObservers: $it")
             mainAdapter?.updateList(it)
         }
@@ -104,10 +105,10 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
 
     override fun onVideoCallClicked(username: String) {
         getCameraAndMicPermission {
-            mainRepository.placeCall(this.username!!, username) {
+            mainRepository.sendConnectionRequest(username, true) {
                 if (it) {
                     // Start video call
-                    startActivity(Intent(this, WebRTCMainActivity::class.java).apply {
+                    startActivity(Intent(this, CallActivity::class.java).apply {
                         putExtra("target", username)
                         putExtra("isVideoCall", true)
                         putExtra("isCaller", true)
@@ -120,10 +121,10 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
 
     override fun onAudioCallClicked(username: String) {
         getCameraAndMicPermission {
-            mainRepository.placeCall(this.username!!, username) {
+            mainRepository.sendConnectionRequest(username, false) {
                 if (it) {
                     // Start audio call
-                    startActivity(Intent(this, WebRTCMainActivity::class.java).apply {
+                    startActivity(Intent(this, CallActivity::class.java).apply {
                         putExtra("target", username)
                         putExtra("isVideoCall", false)
                         putExtra("isCaller", true)
@@ -150,7 +151,7 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
                     getCameraAndMicPermission {
                         incomingCallLayout.isVisible = false
                         // Create an intent to go to video call activity
-                        startActivity(Intent(this@WebRTCMainActivity, WebRTCMainActivity::class.java).apply {
+                        startActivity(Intent(this@WebRTCMainActivity, CallActivity::class.java).apply {
                             putExtra("target", model.sender)
                             putExtra("isVideoCall", isVideoCall)
                             putExtra("isCaller", false)
@@ -177,7 +178,7 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
                         incomingCallLayout.isVisible = false
                         mainRepository.answerCall(callId)
                         // Start video call
-                        startActivity(Intent(this@WebRTCMainActivity, WebRTCMainActivity::class.java).apply {
+                        startActivity(Intent(this@WebRTCMainActivity, CallActivity::class.java).apply {
                             putExtra("target", caller)
                             putExtra("isVideoCall", true)
                             putExtra("isCaller", false)

@@ -1,11 +1,14 @@
 package com.example.mapsapp.webrtc.repository
 
+import android.util.Log
 import com.example.mapsapp.webrtc.firebaseClient.FirebaseClient
+import com.example.mapsapp.webrtc.service.MainService
 import com.example.mapsapp.webrtc.utils.DataModel
 import com.example.mapsapp.webrtc.utils.DataModelType
 import com.example.mapsapp.webrtc.utils.UserStatus
 import com.example.mapsapp.webrtc.webrtc.MyPeerObserver
 import com.example.mapsapp.webrtc.webrtc.WebRTCClient
+import com.google.firebase.auth.FirebaseAuth
 import com.google.gson.Gson
 import org.webrtc.*
 import javax.inject.Inject
@@ -19,56 +22,73 @@ class MainRepository @Inject constructor(
 ) : WebRTCClient.Listener {
 
     private var target: String? = null
-    private var callId: String? = null
     var listener: Listener? = null
     private var remoteView: SurfaceViewRenderer? = null
+    var auth = FirebaseAuth.getInstance()
 
     fun login(username: String, password: String, isDone: (Boolean, String?) -> Unit) {
         firebaseClient.login(username, password, isDone)
     }
-
-    fun observeUsersStatus(status: (List<Pair<String, String>>) -> Unit) {
-        firebaseClient.observeUsersStatus(status)
+    fun observeUsersStatus(currentUserId: String, status: (List<Pair<String, String>>) -> Unit) {
+        firebaseClient.observeUsersStatus(currentUserId) { users ->
+            val filteredUsers = users.filterNot { it.first == currentUserId }
+            status(filteredUsers)
+        }
     }
 
-    fun placeCall(caller: String, callee: String, callback: (Boolean) -> Unit) {
-        val callId = "$caller-$callee-${System.currentTimeMillis()}"
-        this.callId = callId
-        firebaseClient.placeCall(caller, callee, callId) { success ->
-            if (success) {
-                observeCallStatus(callId)
+    fun initFirebase() {
+        firebaseClient.subscribeForLatestEvent(object : FirebaseClient.Listener {
+            override fun onLatestEventReceived(event: DataModel) {
+                Log.e("TAG", "----------------------  onLatestEventReceived: $event")
+                when (event.type) {
+                    DataModelType.StartVideoCall,
+                    DataModelType.StartAudioCall -> {
+                        MainService.listener?.onCallReceived(event)
+                    }
+                    DataModelType.Offer -> {
+                        webRTCClient.onRemoteSessionReceived(
+                            SessionDescription(
+                                SessionDescription.Type.OFFER,
+                                event.data.toString()
+                            )
+                        )
+                        webRTCClient.answer(target!!)
+                    }
+                    DataModelType.Answer -> {
+                        webRTCClient.onRemoteSessionReceived(
+                            SessionDescription(
+                                SessionDescription.Type.ANSWER,
+                                event.data.toString()
+                            )
+                        )
+                    }
+                    DataModelType.IceCandidates -> {
+                        val candidate: IceCandidate? = try {
+                            gson.fromJson(event.data.toString(), IceCandidate::class.java)
+                        } catch (e: Exception) {
+                            null
+                        }
+                        candidate?.let {
+                            webRTCClient.addIceCandidateToPeer(it)
+                        }
+                    }
+                    DataModelType.EndCall -> {
+                        listener?.endCall()
+                    }
+                    else -> Unit
+                }
             }
-            callback(success)
-        }
+        })
     }
 
-    fun answerCall(callId: String) {
-        this.callId = callId
-        firebaseClient.answerCall(callId)
-        startCall()
-    }
-
-    fun endCall() {
-        callId?.let {
-            firebaseClient.endCall(it)
-            webRTCClient.closeConnection()
-            changeMyStatus(UserStatus.ONLINE)
-        }
-    }
-
-    private fun observeCallStatus(callId: String) {
-        firebaseClient.observeCallStatus(callId) { status ->
-            when (status) {
-                "accepted" -> startCall()
-                "ended" -> listener?.endCall()
-            }
-        }
-    }
-
-    fun observeIncomingCalls(username: String, listener: (String, String) -> Unit) {
-        firebaseClient.observeIncomingCalls(username) { callId, caller ->
-            listener(callId, caller)
-        }
+    fun sendConnectionRequest(target: String, isVideoCall: Boolean, success: (Boolean) -> Unit) {
+        firebaseClient.sendMessageToOtherClient(
+            DataModel(
+                sender = auth.currentUser?.uid,
+                type = if (isVideoCall) DataModelType.StartVideoCall else DataModelType.StartAudioCall,
+                target = target
+            ), success
+        )
     }
 
     fun setTarget(target: String) {
@@ -83,7 +103,6 @@ class MainRepository @Inject constructor(
     fun initWebrtcClient(username: String) {
         webRTCClient.listener = this
         webRTCClient.initializeWebrtcClient(username, object : MyPeerObserver() {
-
             override fun onAddStream(p0: MediaStream?) {
                 super.onAddStream(p0)
                 try {
@@ -123,10 +142,18 @@ class MainRepository @Inject constructor(
         webRTCClient.call(target!!)
     }
 
+    fun endCall() {
+        webRTCClient.closeConnection()
+        changeMyStatus(UserStatus.ONLINE)
+    }
+
     fun sendEndCall() {
-        callId?.let {
-            firebaseClient.endCall(it)
-        }
+        onTransferEventToSocket(
+            DataModel(
+                type = DataModelType.EndCall,
+                target = target!!
+            )
+        )
     }
 
     private fun changeMyStatus(status: UserStatus) {
@@ -145,50 +172,17 @@ class MainRepository @Inject constructor(
         webRTCClient.switchCamera()
     }
 
-    fun initFirebase() {
-        firebaseClient.subscribeForLatestEvent(object : FirebaseClient.Listener {
-            override fun onLatestEventReceived(event: DataModel) {
-                listener?.onLatestEventReceived(event)
-                when (event.eventType) {
-                    DataModelType.Offer.name -> {
-                        webRTCClient.onRemoteSessionReceived(
-                            SessionDescription(
-                                SessionDescription.Type.OFFER,
-                                event.data
-                            )
-                        )
-                        webRTCClient.answer(target!!)
-                    }
-                    DataModelType.Answer.name -> {
-                        webRTCClient.onRemoteSessionReceived(
-                            SessionDescription(
-                                SessionDescription.Type.ANSWER,
-                                event.data
-                            )
-                        )
-                    }
-                    DataModelType.IceCandidates.name -> {
-                        val candidate: IceCandidate? = try {
-                            gson.fromJson(event.data, IceCandidate::class.java)
-                        } catch (e: Exception) {
-                            null
-                        }
-                        candidate?.let {
-                            webRTCClient.addIceCandidateToPeer(it)
-                        }
-                    }
-                    DataModelType.EndCall.name -> {
-                        listener?.endCall()
-                    }
-                    else -> Unit
-                }
-            }
-        })
-    }
-
     override fun onTransferEventToSocket(data: DataModel) {
         firebaseClient.sendMessageToOtherClient(data) {}
     }
 
     fun logOff(function: () -> Unit) = firebaseClient.logOff(function)
+
+    fun observeIncomingCalls(username: String, onCallReceived: (String, String) -> Unit) {
+        firebaseClient.observeIncomingCalls(username, onCallReceived)
+    }
+
+    fun answerCall(callId: String) {
+        firebaseClient.answerCall(callId)
+    }
 }
