@@ -11,10 +11,13 @@ import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.FragmentHomeBinding
+import com.example.mapsapp.repository.AuthRepository
 import com.example.mapsapp.view.chatbot.ChatBotActivity
 import com.example.mapsapp.viewmodel.HomeViewModel
+import com.example.mapsapp.webrtc.service.MainServiceRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
@@ -23,12 +26,22 @@ class HomeFragment : Fragment() {
     private val binding get() = _binding!!
     private val homeViewModel: HomeViewModel by viewModels()
 
+    @Inject
+    lateinit var mainServiceRepository: MainServiceRepository
+
+    @Inject
+    lateinit var firebaseAuth: AuthRepository
+
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val view = binding.root
+
+        mainServiceRepository.startService(firebaseAuth.getCurrentUser()!!.uid)
 
         homeViewModel.user.observe(viewLifecycleOwner, Observer { user ->
             binding.emailTextView.text = "Welcome, ${user?.email}"

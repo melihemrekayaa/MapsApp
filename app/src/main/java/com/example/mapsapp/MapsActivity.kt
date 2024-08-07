@@ -257,7 +257,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun openChatFragment(userUid: String,userEmail: String) {
-        val intent = Intent(this, MainActivity::class.java)
+        val intent = Intent(this, MapsMainActivity::class.java)
         intent.putExtra("receiverId", userUid)
         intent.putExtra("receiverName", userEmail.split("@")[0])
         startActivity(intent)

@@ -3,7 +3,7 @@ package com.example.mapsapp.viewmodel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.mapsapp.repo.AuthRepository
+import com.example.mapsapp.repository.AuthRepository
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.GeoPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,4 +37,6 @@ class AuthViewModel @Inject constructor(
         authRepository.logout()
         _user.value = null
     }
+
+
 }

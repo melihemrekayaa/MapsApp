@@ -104,6 +104,12 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.recyclerview)
 
+    implementation ("com.google.firebase:firebase-bom:32.2.0")
+    implementation ("com.google.firebase:firebase-database-ktx:20.2.2")
+    implementation ("com.google.code.gson:gson:2.10.1")
+    implementation ("com.mesibo.api:webrtc:1.0.5")
+    implementation ("com.guolindev.permissionx:permissionx:1.6.1")
+
     // Dependencies to test
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.0")
@@ -131,7 +137,13 @@ dependencies {
     implementation ("androidx.navigation:navigation-fragment-ktx:2.7.7")
     implementation ("androidx.navigation:navigation-ui-ktx:2.7.7")
 
+
+
+
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
+
+
