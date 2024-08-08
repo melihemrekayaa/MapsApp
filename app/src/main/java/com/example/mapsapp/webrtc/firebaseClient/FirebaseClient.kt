@@ -23,7 +23,7 @@ class FirebaseClient @Inject constructor(
         this.currentUsername = username
     }
 
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+    private val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
 
 
 

@@ -70,7 +70,7 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
         // 1. Observe other users status
         subscribeObservers()
         // 2. Start foreground service to listen negotiations and calls.
-       // startMyService()
+        startMyService()
         // 3. Observe incoming calls
         mainRepository.observeIncomingCalls(username!!) { callId, caller ->
             showIncomingCallDialog(callId, caller)
