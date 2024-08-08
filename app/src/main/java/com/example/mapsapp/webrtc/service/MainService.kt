@@ -52,18 +52,16 @@ class MainService : Service(), MainRepository.Listener {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         intent?.let { incomingIntent ->
             when (incomingIntent.action) {
-                MainServiceActions.START_SERVICE.name -> handleStartService(incomingIntent)
-                MainServiceActions.SETUP_VIEWS.name -> handleSetupViews(incomingIntent)
-                MainServiceActions.END_CALL.name -> handleEndCall()
-                MainServiceActions.SWITCH_CAMERA.name -> handleSwitchCamera()
-                MainServiceActions.TOGGLE_AUDIO.name -> handleToggleAudio(incomingIntent)
-                MainServiceActions.TOGGLE_VIDEO.name -> handleToggleVideo(incomingIntent)
-                MainServiceActions.TOGGLE_AUDIO_DEVICE.name -> handleToggleAudioDevice(incomingIntent)
-                MainServiceActions.STOP_SERVICE.name -> handleStopService()
+                "START_SERVICE" -> handleStartService(incomingIntent)
+                "SETUP_VIEWS" -> handleSetupViews(incomingIntent)
+                "END_CALL" -> handleEndCall()
+                "SWITCH_CAMERA" -> handleSwitchCamera()
+                "TOGGLE_AUDIO" -> handleToggleAudio(incomingIntent)
+                "TOGGLE_VIDEO" -> handleToggleVideo(incomingIntent)
+                "STOP_SERVICE" -> handleStopService()
                 else -> Unit
             }
         }
-
         return START_STICKY
     }
 
@@ -72,20 +70,6 @@ class MainService : Service(), MainRepository.Listener {
         mainRepository.logOff {
             isServiceRunning = false
             stopSelf()
-        }
-    }
-
-    private fun handleToggleAudioDevice(incomingIntent: Intent) {
-        val type = when (incomingIntent.getStringExtra("type")) {
-            RTCAudioManager.AudioDevice.EARPIECE.name -> RTCAudioManager.AudioDevice.EARPIECE
-            RTCAudioManager.AudioDevice.SPEAKER_PHONE.name -> RTCAudioManager.AudioDevice.SPEAKER_PHONE
-            else -> null
-        }
-
-        type?.let {
-            rtcAudioManager.setDefaultAudioDevice(it)
-            rtcAudioManager.selectAudioDevice(it)
-            Log.d(TAG, "handleToggleAudioDevice: $it")
         }
     }
 
@@ -105,16 +89,18 @@ class MainService : Service(), MainRepository.Listener {
     }
 
     private fun handleEndCall() {
-        //1. we have to send a signal to other peer that call is ended
         mainRepository.sendEndCall()
-        //2.end out call process and restart our webrtc client
         endCallAndRestartRepository()
     }
 
     private fun endCallAndRestartRepository() {
-        mainRepository.endCall()
-        endCallListener?.onCallEnded()
-        mainRepository.initWebrtcClient(username!!)
+        if (username != null) {
+            mainRepository.endCall()
+            endCallListener?.onCallEnded()
+            mainRepository.initWebrtcClient(username!!)
+        } else {
+            Log.e(TAG, "Username is null, cannot restart repository")
+        }
     }
 
     private fun handleSetupViews(incomingIntent: Intent) {
@@ -123,25 +109,23 @@ class MainService : Service(), MainRepository.Listener {
         val target = incomingIntent.getStringExtra("target")
         this.isPreviousCallStateVideo = isVideoCall
         mainRepository.setTarget(target!!)
-        //initialize our widgets and start streaming our video and audio source
-        //and get prepared for call
         mainRepository.initLocalSurfaceView(localSurfaceView!!, isVideoCall)
         mainRepository.initRemoteSurfaceView(remoteSurfaceView!!)
-
         if (!isCaller) {
-            //start the video call
             mainRepository.startCall()
         }
     }
 
     private fun handleStartService(incomingIntent: Intent) {
-        //start our foreground service
         if (!isServiceRunning) {
             isServiceRunning = true
             username = incomingIntent.getStringExtra("username")
+            if (username == null) {
+                Log.e(TAG, "Username is null, cannot start service")
+                stopSelf()
+                return
+            }
             startServiceWithNotification()
-
-            //setup my clients
             mainRepository.listener = this
             mainRepository.initFirebase()
             mainRepository.initWebrtcClient(username!!)
@@ -153,19 +137,16 @@ class MainService : Service(), MainRepository.Listener {
             val notificationChannel = NotificationChannel(
                 "channel1", "foreground", NotificationManager.IMPORTANCE_HIGH
             )
-
             val intent = Intent(this, MainServiceReceiver::class.java).apply {
                 action = "ACTION_EXIT"
             }
             val pendingIntent: PendingIntent =
                 PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-
             notificationManager.createNotificationChannel(notificationChannel)
             val notification = NotificationCompat.Builder(
                 this, "channel1"
             ).setSmallIcon(R.mipmap.ic_launcher)
                 .addAction(R.drawable.ic_end_call, "Exit", pendingIntent)
-
             startForeground(1, notification.build())
         }
     }
@@ -187,7 +168,6 @@ class MainService : Service(), MainRepository.Listener {
     }
 
     override fun endCall() {
-        //we are receiving end call signal from remote peer
         endCallAndRestartRepository()
     }
 

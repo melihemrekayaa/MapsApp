@@ -34,24 +34,9 @@ class CallActivity : AppCompatActivity(), MainService.EndCallListener {
 
 
     @Inject lateinit var serviceRepository: MainServiceRepository
-    private lateinit var requestScreenCaptureLauncher:ActivityResultLauncher<Intent>
 
     private lateinit var views: ActivityCallBinding
 
-    override fun onStart() {
-        super.onStart()
-        requestScreenCaptureLauncher = registerForActivityResult(ActivityResultContracts
-            .StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK){
-                val intent = result.data
-                //its time to give this intent to our service and service passes it to our webrtc client
-                MainService.screenPermissionIntent = intent
-                isScreenCasting = true
-                updateUiToScreenCaptureIsOn()
-                serviceRepository.toggleScreenShare(true)
-            }
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,64 +87,9 @@ class CallActivity : AppCompatActivity(), MainService.EndCallListener {
         }
         setupMicToggleClicked()
         setupCameraToggleClicked()
-        setupToggleAudioDevice()
-        setupScreenCasting()
         MainService.endCallListener = this
     }
 
-    private fun setupScreenCasting() {
-        views.apply {
-            screenShareButton.setOnClickListener {
-                if (!isScreenCasting){
-                    //we have to start casting
-                    AlertDialog.Builder(this@CallActivity)
-                        .setTitle("Screen Casting")
-                        .setMessage("You sure to start casting ?")
-                        .setPositiveButton("Yes"){dialog,_ ->
-                            //start screen casting process
-                            startScreenCapture()
-                            dialog.dismiss()
-                        }.setNegativeButton("No") {dialog,_ ->
-                            dialog.dismiss()
-                        }.create().show()
-                }else{
-                    //we have to end screen casting
-                    isScreenCasting = false
-                    updateUiToScreenCaptureIsOff()
-                    serviceRepository.toggleScreenShare(false)
-                }
-            }
-
-        }
-    }
-
-    private fun startScreenCapture() {
-        val mediaProjectionManager = application.getSystemService(
-            Context.MEDIA_PROJECTION_SERVICE
-        ) as MediaProjectionManager
-
-        val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
-        requestScreenCaptureLauncher.launch(captureIntent)
-
-    }
-
-    private fun updateUiToScreenCaptureIsOn(){
-        views.apply {
-            localView.isVisible = false
-            switchCameraButton.isVisible = false
-            toggleCameraButton.isVisible = false
-            screenShareButton.setImageResource(R.drawable.ic_stop_screen_share)
-        }
-
-    }
-    private fun updateUiToScreenCaptureIsOff() {
-        views.apply {
-            localView.isVisible = true
-            switchCameraButton.isVisible = true
-            toggleCameraButton.isVisible = true
-            screenShareButton.setImageResource(R.drawable.ic_screen_share)
-        }
-    }
     private fun setupMicToggleClicked(){
         views.apply {
             toggleMicrophoneButton.setOnClickListener {
@@ -186,26 +116,6 @@ class CallActivity : AppCompatActivity(), MainService.EndCallListener {
         serviceRepository.sendEndCall()
     }
 
-    private fun setupToggleAudioDevice(){
-        views.apply {
-            toggleAudioDevice.setOnClickListener {
-                if (isSpeakerMode){
-                    //we should set it to earpiece mode
-                    toggleAudioDevice.setImageResource(R.drawable.ic_speaker)
-                    //we should send a command to our service to switch between devices
-                    serviceRepository.toggleAudioDevice(RTCAudioManager.AudioDevice.EARPIECE.name)
-
-                }else{
-                    //we should set it to speaker mode
-                    toggleAudioDevice.setImageResource(R.drawable.ic_ear)
-                    serviceRepository.toggleAudioDevice(RTCAudioManager.AudioDevice.SPEAKER_PHONE.name)
-
-                }
-                isSpeakerMode = !isSpeakerMode
-            }
-
-        }
-    }
 
     private fun setupCameraToggleClicked(){
         views.apply {

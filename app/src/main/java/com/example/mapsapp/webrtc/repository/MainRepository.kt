@@ -24,11 +24,12 @@ class MainRepository @Inject constructor(
     private var target: String? = null
     var listener: Listener? = null
     private var remoteView: SurfaceViewRenderer? = null
-    var auth = FirebaseAuth.getInstance()
+    private val auth = FirebaseAuth.getInstance()
 
     fun login(username: String, password: String, isDone: (Boolean, String?) -> Unit) {
         firebaseClient.login(username, password, isDone)
     }
+
     fun observeUsersStatus(currentUserId: String, status: (List<Pair<String, String>>) -> Unit) {
         firebaseClient.observeUsersStatus(currentUserId) { users ->
             val filteredUsers = users.filterNot { it.first == currentUserId }
@@ -45,40 +46,44 @@ class MainRepository @Inject constructor(
                     DataModelType.StartAudioCall -> {
                         MainService.listener?.onCallReceived(event)
                     }
-                    DataModelType.Offer -> {
-                        webRTCClient.onRemoteSessionReceived(
-                            SessionDescription(
-                                SessionDescription.Type.OFFER,
-                                event.data.toString()
-                            )
-                        )
-                        webRTCClient.answer(target!!)
-                    }
-                    DataModelType.Answer -> {
-                        webRTCClient.onRemoteSessionReceived(
-                            SessionDescription(
-                                SessionDescription.Type.ANSWER,
-                                event.data.toString()
-                            )
-                        )
-                    }
-                    DataModelType.IceCandidates -> {
-                        val candidate: IceCandidate? = try {
-                            gson.fromJson(event.data.toString(), IceCandidate::class.java)
-                        } catch (e: Exception) {
-                            null
-                        }
-                        candidate?.let {
-                            webRTCClient.addIceCandidateToPeer(it)
-                        }
-                    }
-                    DataModelType.EndCall -> {
-                        listener?.endCall()
-                    }
+                    DataModelType.Offer -> handleRemoteOffer(event)
+                    DataModelType.Answer -> handleRemoteAnswer(event)
+                    DataModelType.IceCandidates -> handleIceCandidate(event)
+                    DataModelType.EndCall -> listener?.endCall()
                     else -> Unit
                 }
             }
         })
+    }
+
+    private fun handleRemoteOffer(event: DataModel) {
+        webRTCClient.onRemoteSessionReceived(
+            SessionDescription(
+                SessionDescription.Type.OFFER,
+                event.data.toString()
+            )
+        )
+        webRTCClient.answer(target!!)
+    }
+
+    private fun handleRemoteAnswer(event: DataModel) {
+        webRTCClient.onRemoteSessionReceived(
+            SessionDescription(
+                SessionDescription.Type.ANSWER,
+                event.data.toString()
+            )
+        )
+    }
+
+    private fun handleIceCandidate(event: DataModel) {
+        val candidate: IceCandidate? = try {
+            gson.fromJson(event.data.toString(), IceCandidate::class.java)
+        } catch (e: Exception) {
+            null
+        }
+        candidate?.let {
+            webRTCClient.addIceCandidateToPeer(it)
+        }
     }
 
     fun sendConnectionRequest(target: String, isVideoCall: Boolean, success: (Boolean) -> Unit) {
@@ -104,23 +109,16 @@ class MainRepository @Inject constructor(
         webRTCClient.listener = this
         webRTCClient.initializeWebrtcClient(username, object : MyPeerObserver() {
             override fun onAddStream(p0: MediaStream?) {
-                super.onAddStream(p0)
-                try {
-                    p0?.videoTracks?.get(0)?.addSink(remoteView)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                p0?.videoTracks?.get(0)?.addSink(remoteView)
             }
 
             override fun onIceCandidate(p0: IceCandidate?) {
-                super.onIceCandidate(p0)
                 p0?.let {
                     webRTCClient.sendIceCandidate(target!!, it)
                 }
             }
 
             override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
-                super.onConnectionChange(newState)
                 if (newState == PeerConnection.PeerConnectionState.CONNECTED) {
                     changeMyStatus(UserStatus.IN_CALL)
                     firebaseClient.clearLatestEvent()

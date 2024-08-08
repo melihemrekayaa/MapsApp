@@ -10,12 +10,10 @@ class MainServiceRepository @Inject constructor(
 ) {
 
     fun startService(username: String) {
-        Thread {
-            val intent = Intent(context, MainService::class.java)
-            intent.putExtra("username", username)
-            intent.action = MainServiceActions.START_SERVICE.name
-            startServiceIntent(intent)
-        }.start()
+        val intent = Intent(context, MainService::class.java)
+        intent.putExtra("username", username)
+        intent.action = "START_SERVICE"
+        startServiceIntent(intent)
     }
 
     private fun startServiceIntent(intent: Intent) {
@@ -27,9 +25,8 @@ class MainServiceRepository @Inject constructor(
     }
 
     fun setupViews(videoCall: Boolean, caller: Boolean, target: String) {
-        val intent = Intent(context, MainService::class.java)
-        intent.apply {
-            action = MainServiceActions.SETUP_VIEWS.name
+        val intent = Intent(context, MainService::class.java).apply {
+            action = "SETUP_VIEWS"
             putExtra("isVideoCall", videoCall)
             putExtra("target", target)
             putExtra("isCaller", caller)
@@ -39,47 +36,35 @@ class MainServiceRepository @Inject constructor(
 
     fun sendEndCall() {
         val intent = Intent(context, MainService::class.java)
-        intent.action = MainServiceActions.END_CALL.name
+        intent.action = "END_CALL"
         startServiceIntent(intent)
     }
 
     fun switchCamera() {
         val intent = Intent(context, MainService::class.java)
-        intent.action = MainServiceActions.SWITCH_CAMERA.name
+        intent.action = "SWITCH_CAMERA"
         startServiceIntent(intent)
     }
 
     fun toggleAudio(shouldBeMuted: Boolean) {
-        val intent = Intent(context, MainService::class.java)
-        intent.action = MainServiceActions.TOGGLE_AUDIO.name
-        intent.putExtra("shouldBeMuted", shouldBeMuted)
+        val intent = Intent(context, MainService::class.java).apply {
+            action = "TOGGLE_AUDIO"
+            putExtra("shouldBeMuted", shouldBeMuted)
+        }
         startServiceIntent(intent)
     }
 
     fun toggleVideo(shouldBeMuted: Boolean) {
-        val intent = Intent(context, MainService::class.java)
-        intent.action = MainServiceActions.TOGGLE_VIDEO.name
-        intent.putExtra("shouldBeMuted", shouldBeMuted)
-        startServiceIntent(intent)
-    }
-
-    fun toggleAudioDevice(type: String) {
-        val intent = Intent(context, MainService::class.java)
-        intent.action = MainServiceActions.TOGGLE_AUDIO_DEVICE.name
-        intent.putExtra("type", type)
-        startServiceIntent(intent)
-    }
-
-    fun toggleScreenShare(isStarting: Boolean) {
-        val intent = Intent(context, MainService::class.java)
-        intent.action = MainServiceActions.TOGGLE_SCREEN_SHARE.name
-        intent.putExtra("isStarting", isStarting)
+        val intent = Intent(context, MainService::class.java).apply {
+            action = "TOGGLE_VIDEO"
+            putExtra("shouldBeMuted", shouldBeMuted)
+        }
         startServiceIntent(intent)
     }
 
     fun stopService() {
         val intent = Intent(context, MainService::class.java)
-        intent.action = MainServiceActions.STOP_SERVICE.name
+        intent.action = "STOP_SERVICE"
         startServiceIntent(intent)
     }
 }
