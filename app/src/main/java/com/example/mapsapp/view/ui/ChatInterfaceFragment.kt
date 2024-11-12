@@ -14,12 +14,13 @@ import com.example.mapsapp.R
 import com.example.mapsapp.adapter.UsersAdapter
 import com.example.mapsapp.databinding.FragmentChatInterfaceBinding
 import com.example.mapsapp.model.User
+import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatInterfaceViewModel
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class ChatInterfaceFragment : Fragment() {
+class ChatInterfaceFragment : BaseFragment() {
 
     private var _binding: FragmentChatInterfaceBinding? = null
     private val binding get() = _binding!!
@@ -36,9 +37,13 @@ class ChatInterfaceFragment : Fragment() {
         val view = binding.root
         auth = FirebaseAuth.getInstance()
 
+
+
         adapter = UsersAdapter(emptyList()) { user ->
-            val action = ChatInterfaceFragmentDirections.actionChatInterfaceFragmentToChatFragment(user.uid)
-            findNavController().navigate(action)
+            val bundle = Bundle().apply {
+                putString("receiverId", user.uid)
+            }
+            findNavController().navigate(R.id.chatFragment, bundle)
         }
 
         binding.recyclerView.adapter = adapter

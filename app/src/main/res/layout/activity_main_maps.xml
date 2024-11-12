@@ -14,4 +14,18 @@
         android:layout_height="match_parent"
         app:defaultNavHost="true"
         app:navGraph="@navigation/nav_graph" />
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavBar"
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:backgroundTint="#E3F2FD"
+        android:elevation="8dp"
+        app:itemIconSize="28dp"
+        app:labelVisibilityMode="labeled"
+        app:itemTextColor="@color/bottom_nav_text_color"
+        app:itemIconTint="@color/bottom_nav_icon_color"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:menu="@menu/bottom_nav_menu" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

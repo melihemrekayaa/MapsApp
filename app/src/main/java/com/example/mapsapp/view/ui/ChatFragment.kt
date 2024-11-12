@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mapsapp.R
 import com.example.mapsapp.adapter.ChatAdapter
 import com.example.mapsapp.databinding.FragmentChatBinding
+import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatViewModel
 import com.example.mapsapp.webrtc.repository.MainRepository
 import com.example.mapsapp.webrtc.service.MainService
@@ -35,8 +36,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class ChatFragment : Fragment(), MainService.Listener {
-    lateinit var _binding: FragmentChatBinding
+class ChatFragment : BaseFragment(), MainService.Listener {
+    private var _binding: FragmentChatBinding? = null
     private val binding get() = _binding!!
     private lateinit var auth: FirebaseAuth
     private val chatViewModel: ChatViewModel by viewModels()
@@ -49,16 +50,14 @@ class ChatFragment : Fragment(), MainService.Listener {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         _binding = FragmentChatBinding.inflate(inflater, container, false)
         auth = FirebaseAuth.getInstance()
 
-        arguments?.let {
-            receiverId = it.getString("receiverId")
-        }
+        // Argumentten receiverId'yi alın
+        receiverId = arguments?.getString("receiverId")
 
         init()
-
         setupToolbar()
 
         adapter = ChatAdapter(chatViewModel.messages.value ?: emptyList(), auth.currentUser?.uid ?: "")
@@ -87,26 +86,15 @@ class ChatFragment : Fragment(), MainService.Listener {
     }
 
     private fun init() {
-        // 1. Observe other users status
+        // 1. Kullanıcı durumlarını gözlemleyin
         subscribeObservers()
-        // 2. Start foreground service to listen negotiations and calls.
-        // startMyService()
-        // 3. Observe incoming calls
-        /*mainRepository.observeIncomingCalls(username!!) { callId, caller ->
-            showIncomingCallDialog(callId, caller)
-        }*/
+        // Diğer gerekli başlangıç işlemleri
     }
 
     private fun subscribeObservers() {
-       // setupRecyclerView()
+        // Diğer kullanıcıları gözlemleme işlemleri
         MainService.listener = this
-        /*val currentUserId = username ?: return
-        mainRepository.observeUsersStatus(currentUserId) {
-            Log.d(TAG, "subscribeObservers: $it")
-            mainAdapter?.updateList(it)
-        }*/
     }
-
 
     private fun setupToolbar() {
         val toolbar = binding.chatToolbar
@@ -120,6 +108,7 @@ class ChatFragment : Fragment(), MainService.Listener {
                 toolbar.title = userName ?: "User"
             })
         }
+
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.action_voice_call -> {
@@ -137,21 +126,20 @@ class ChatFragment : Fragment(), MainService.Listener {
 
     override fun onDestroyView() {
         super.onDestroyView()
-       /* _binding = null*/
+        _binding = null
     }
 
     private fun startVoiceCall() {
         getCameraAndMicPermission {
             receiverId?.let { receiverId ->
                 val senderUsername = getUsernameFromEmail(auth.currentUser?.email ?: "")
-                val receiverUsername = receiverId
-                mainRepository.sendConnectionRequest(receiverUsername, false) { success ->
+                mainRepository.sendConnectionRequest(receiverId, false) { success ->
                     if (success) {
                         startActivity(Intent(context, WebRTCMainActivity::class.java).apply {
-                            putExtra("target", receiverUsername)
+                            putExtra("target", receiverId)
                             putExtra("isVideoCall", false)
                             putExtra("isCaller", true)
-                            putExtra("username", senderUsername)  // Burada username'i geçiriyoruz
+                            putExtra("username", senderUsername)
                         })
                     } else {
                         Toast.makeText(context, "Voice call failed", Toast.LENGTH_SHORT).show()
@@ -165,14 +153,13 @@ class ChatFragment : Fragment(), MainService.Listener {
         getCameraAndMicPermission {
             receiverId?.let { receiverId ->
                 val senderUsername = getUsernameFromEmail(auth.currentUser?.email ?: "")
-                val receiverUsername = receiverId
-                mainRepository.sendConnectionRequest(receiverUsername, true) { success ->
+                mainRepository.sendConnectionRequest(receiverId, true) { success ->
                     if (success) {
                         startActivity(Intent(context, CallActivity::class.java).apply {
-                            putExtra("target", receiverUsername)
+                            putExtra("target", receiverId)
                             putExtra("isVideoCall", true)
                             putExtra("isCaller", true)
-                            putExtra("username", senderUsername)  // Burada username'i geçiriyoruz
+                            putExtra("username", senderUsername)
                         })
                     } else {
                         Toast.makeText(context, "Video call failed", Toast.LENGTH_SHORT).show()
@@ -184,7 +171,6 @@ class ChatFragment : Fragment(), MainService.Listener {
 
     private fun getCameraAndMicPermission(onPermissionGranted: () -> Unit) {
         val permissions = arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO)
-
         val permissionsToRequest = permissions.filter {
             ContextCompat.checkSelfPermission(requireContext(), it) != PackageManager.PERMISSION_GRANTED
         }
@@ -223,7 +209,7 @@ class ChatFragment : Fragment(), MainService.Listener {
 
     override fun onCallReceived(model: DataModel) {
         CoroutineScope(Dispatchers.Main).launch {
-            _binding.apply {
+            _binding?.apply {
                 val isVideoCall = model.type == DataModelType.StartVideoCall
                 val isVideoCallText = if (isVideoCall) "Video" else "Audio"
                 incomingCallTitleTv.text = "${model.sender} is $isVideoCallText Calling you"
@@ -231,7 +217,6 @@ class ChatFragment : Fragment(), MainService.Listener {
                 acceptButton.setOnClickListener {
                     getCameraAndMicPermission {
                         incomingCallLayout.isVisible = false
-                        // Create an intent to go to video call activity
                         startActivity(Intent(requireContext(), CallActivity::class.java).apply {
                             putExtra("target", model.sender)
                             putExtra("isVideoCall", isVideoCall)

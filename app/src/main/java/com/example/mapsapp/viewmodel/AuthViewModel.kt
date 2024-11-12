@@ -17,9 +17,16 @@ class AuthViewModel @Inject constructor(
     private val _user = MutableLiveData<FirebaseUser?>()
     val user: LiveData<FirebaseUser?> get() = _user
 
+    private val _error = MutableLiveData<String?>()
+    val error: LiveData<String?> get() = _error
+
     fun register(email: String, password: String, location: GeoPoint) {
         authRepository.register(email, password, location) { firebaseUser ->
-            _user.value = firebaseUser
+            if (firebaseUser != null) {
+                _user.postValue(firebaseUser)
+            } else {
+                _error.postValue("Registration failed. Please try again.")
+            }
         }
     }
 
@@ -36,6 +43,10 @@ class AuthViewModel @Inject constructor(
     fun logout() {
         authRepository.logout()
         _user.value = null
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 
 

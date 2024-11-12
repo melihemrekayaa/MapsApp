@@ -1,0 +1,82 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="160dp"
+    android:layout_margin="8dp"
+    android:background="@drawable/card_background">
+
+    <!-- Blurlu Logo Arka Planı -->
+    <ImageView
+        android:id="@+id/backgroundLogo"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_gravity="center"
+        android:scaleType="fitCenter"
+        android:alpha="0.1"
+        app:tint="#FFFFFF" />
+
+    <!-- Cam Efekti Katmanı -->
+<View
+android:id="@+id/glassEffectLayer"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:background="#80000000" /> <!-- Yarı şeffaf beyaz katman -->
+
+    <!-- Ön Yüz: Kart İçeriği (frontCard) -->
+<LinearLayout
+android:id="@+id/frontCard"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:orientation="vertical"
+android:gravity="center"
+android:padding="12dp">
+
+<!-- Dinamik Logo -->
+<ImageView
+    android:id="@+id/logoImage"
+    android:layout_width="32dp"
+    android:layout_height="32dp"
+    android:scaleType="fitCenter"
+    android:layout_marginBottom="8dp"
+    app:tint="#FFFFFF" />
+
+<TextView
+    android:id="@+id/cardTitle"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Card Title"
+    android:textColor="#FFFFFF"
+    android:textSize="14sp"
+    android:gravity="center" />
+</LinearLayout>
+
+
+<LinearLayout
+android:id="@+id/backCard"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:orientation="vertical"
+android:gravity="center"
+android:padding="16dp"
+android:background="@drawable/back_card_background"
+android:visibility="gone">
+
+<TextView
+    android:id="@+id/backCardText"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="This is the back side description."
+    android:textColor="#FFFFFF"
+    android:textSize="14sp"
+    android:gravity="center" />
+
+    <Button
+        android:id="@+id/navigateButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Go to Page"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="#6200EE"
+        android:textColor="#FFFFFF" />
+</LinearLayout>
+    </FrameLayout>

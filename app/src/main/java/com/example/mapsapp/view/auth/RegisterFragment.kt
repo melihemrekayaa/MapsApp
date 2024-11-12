@@ -50,26 +50,41 @@ class RegisterFragment : Fragment() {
             if (granted) {
                 getUserLocation()
             } else {
-                Toast.makeText(requireContext(), "Konum izni reddedildi", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Konum izni gerekli. Lütfen izin verin.", Toast.LENGTH_SHORT).show()
             }
         }
+
 
         // Kullanıcının konumunu burada almak
         getUserLocation()
 
         binding.registerButton.setOnClickListener {
-            registerUser()
+            val email = binding.emailEditTextRegister.text.toString()
+            val password = binding.passwordEditTextRegister.text.toString()
+
+            if (email.isNotEmpty() && password.isNotEmpty() && currentLocation != null) {
+                authViewModel.register(email, password, currentLocation!!)
+            } else {
+                Toast.makeText(requireContext(), "Lütfen tüm alanları doldurun.", Toast.LENGTH_SHORT).show()
+            }
         }
 
         authViewModel.user.observe(viewLifecycleOwner) { user ->
             if (user != null) {
-                Toast.makeText(requireContext(), "Kayıt başarılı", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Kayıt başarılı!", Toast.LENGTH_SHORT).show()
                 val action = RegisterFragmentDirections.actionRegisterFragmentToHomeFragment()
                 findNavController().navigate(action)
-            } else {
-                Toast.makeText(requireContext(), "Kayıt başarısız.", Toast.LENGTH_SHORT).show()
             }
         }
+
+        authViewModel.error.observe(viewLifecycleOwner) { error ->
+            if (!error.isNullOrEmpty()) {
+                Toast.makeText(requireContext(), "Kayıt başarısız: $error", Toast.LENGTH_SHORT).show()
+                authViewModel.clearError() // Hata mesajını temizle
+            }
+        }
+
+
     }
 
     private fun getUserLocation() {
@@ -93,14 +108,18 @@ class RegisterFragment : Fragment() {
         val email = binding.emailEditTextRegister.text.toString()
         val password = binding.passwordEditTextRegister.text.toString()
 
-        getUserLocation()
-
-        if (email.isNotEmpty() && password.isNotEmpty() && currentLocation != null) {
-            authViewModel.register(email, password, currentLocation!!)
+        if (email.isNotEmpty() && password.isNotEmpty()) {
+            if (currentLocation != null) {
+                authViewModel.register(email, password, currentLocation!!)
+            } else {
+                Toast.makeText(requireContext(), "Konum alınamadı, lütfen tekrar deneyin.", Toast.LENGTH_SHORT).show()
+                getUserLocation() // Konum iznini tekrar almayı dener.
+            }
         } else {
-            Toast.makeText(requireContext(), "Fill in the blanks", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Lütfen tüm alanları doldurun.", Toast.LENGTH_SHORT).show()
         }
     }
+
 
     override fun onDestroyView() {
         super.onDestroyView()

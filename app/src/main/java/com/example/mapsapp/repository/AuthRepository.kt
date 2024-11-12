@@ -17,6 +17,8 @@ class AuthRepository @Inject constructor(
     private val firebaseClient: FirebaseClient
 ) {
 
+
+
     fun getCurrentUser(): FirebaseUser? {
         return auth.currentUser
     }
