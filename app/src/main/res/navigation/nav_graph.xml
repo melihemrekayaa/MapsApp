@@ -5,15 +5,6 @@
     app:startDestination="@id/loginFragment">
 
     <fragment
-        android:id="@+id/registerFragment"
-        android:name="com.example.mapsapp.view.auth.RegisterFragment"
-        android:label="RegisterFragment">
-        <action
-            android:id="@+id/action_registerFragment_to_homeFragment"
-            app:destination="@id/homeFragment" />
-    </fragment>
-
-    <fragment
         android:id="@+id/loginFragment"
         android:name="com.example.mapsapp.view.auth.LoginFragment"
         android:label="fragment_login"
@@ -27,16 +18,28 @@
     </fragment>
 
     <fragment
+        android:id="@+id/registerFragment"
+        android:name="com.example.mapsapp.view.auth.RegisterFragment"
+        android:label="RegisterFragment">
+        <action
+            android:id="@+id/action_registerFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+    </fragment>
+
+    <fragment
         android:id="@+id/homeFragment"
         android:name="com.example.mapsapp.view.ui.HomeFragment"
         android:label="fragment_home"
         tools:layout="@layout/fragment_home">
         <action
-            android:id="@+id/action_homeFragment_to_mapsActivity"
-            app:destination="@id/mapsActivity" />
-        <action
             android:id="@+id/action_homeFragment_to_chatFragment"
             app:destination="@id/chatFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_chatBotActivity"
+            app:destination="@id/chatBotActivity" />
+        <action
+            android:id="@+id/action_homeFragment_to_mapsActivity"
+            app:destination="@id/mapsActivity" />
         <action
             android:id="@+id/action_homeFragment_to_loginFragment"
             app:destination="@id/loginFragment" />
@@ -45,30 +48,36 @@
             app:destination="@id/chatInterfaceFragment" />
     </fragment>
 
-    <activity
-        android:id="@+id/mapsActivity"
-        android:name="com.example.mapsapp.MapsActivity"
-        android:label="activity_maps"
-        tools:layout="@layout/activity_maps">
-
-    </activity>
-
     <fragment
         android:id="@+id/chatFragment"
         android:name="com.example.mapsapp.view.ui.ChatFragment"
         android:label="ChatFragment">
         <argument
             android:name="receiverId"
-            app:argType="string" />
+            app:argType="string"
+            app:nullable="false" />
     </fragment>
 
     <fragment
         android:id="@+id/chatInterfaceFragment"
         android:name="com.example.mapsapp.view.ui.ChatInterfaceFragment"
-        android:label="fragment_chat_interface"
+        android:label="fragment_chatInterface"
         tools:layout="@layout/fragment_chat_interface">
         <action
             android:id="@+id/action_chatInterfaceFragment_to_chatFragment"
             app:destination="@id/chatFragment" />
     </fragment>
+
+    <activity
+        android:id="@+id/mapsActivity"
+        android:name="com.example.mapsapp.MapsActivity"
+        android:label="activity_maps"
+        tools:layout="@layout/activity_maps" />
+
+    <activity
+        android:id="@+id/chatBotActivity"
+        android:name="com.example.mapsapp.view.chatbot.ChatBotActivity"
+        android:label="activity_chat_bot"
+        tools:layout="@layout/activity_chat_bot" />
+
 </navigation>

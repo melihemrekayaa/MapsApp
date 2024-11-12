@@ -1,30 +1,35 @@
 package com.example.mapsapp.view.ui
 
-import android.content.Intent
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
-import com.example.mapsapp.R
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.mapsapp.adapter.CardAdapter
 import com.example.mapsapp.databinding.FragmentHomeBinding
 import com.example.mapsapp.repository.AuthRepository
-import com.example.mapsapp.view.chatbot.ChatBotActivity
+import com.example.mapsapp.util.BaseFragment
+import com.example.mapsapp.util.DataProvider
+import com.example.mapsapp.util.NavigationHelper
+import com.example.mapsapp.viewmodel.AuthViewModel
 import com.example.mapsapp.viewmodel.HomeViewModel
 import com.example.mapsapp.webrtc.service.MainServiceRepository
-import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class HomeFragment : Fragment() {
+class HomeFragment : BaseFragment() {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
     private val homeViewModel: HomeViewModel by viewModels()
+    private val authViewModel: AuthViewModel by viewModels()
 
     @Inject
     lateinit var mainServiceRepository: MainServiceRepository
@@ -43,37 +48,57 @@ class HomeFragment : Fragment() {
 
         mainServiceRepository.startService(firebaseAuth.getCurrentUser()!!.uid)
 
+        val recyclerView: RecyclerView = binding.recyclerView
+        recyclerView.layoutManager = GridLayoutManager(requireContext(), 2)
+
+        recyclerView.addItemDecoration(
+            DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL)
+        )
+
         homeViewModel.user.observe(viewLifecycleOwner, Observer { user ->
-            binding.emailTextView.text = "Welcome, ${user?.email}"
+            binding.welcomeMessage.text = "Welcome, ${user?.email}"
         })
 
-        binding.mapsBtn.setOnClickListener {
-            val action = HomeFragmentDirections.actionHomeFragmentToMapsActivity()
-            findNavController().navigate(action)
+        recyclerView.adapter = CardAdapter(DataProvider.getCardItems()) { cardItem ->
+            if (cardItem.title == "Chat") {
+                NavigationHelper.navigateTo(this, "Chat", "receiver_user_id") // receiverId gönderiliyor
+            } else {
+                NavigationHelper.navigateTo(this, cardItem.title)
+            }
         }
 
-        binding.chatBtn.setOnClickListener {
-            val action = HomeFragmentDirections.actionHomeFragmentToChatInterfaceFragment()
-            findNavController().navigate(action)
+        binding.exitBtn.setOnClickListener {
+            showExitConfirmationDialog()
         }
 
-        binding.chatBotBtn.setOnClickListener {
-            // ChatBotActivity'yi başlatmak için Intent kullanma
-            val intent = Intent(activity, ChatBotActivity::class.java)
-            startActivity(intent)
-        }
 
-        binding.signOutBtn.setOnClickListener {
-            homeViewModel.logout()
-            val action = HomeFragmentDirections.actionHomeFragmentToLoginFragment()
-            findNavController().navigate(action)
-        }
+
 
         return view
+    }
+
+    private fun showExitConfirmationDialog() {
+        val alertDialog = AlertDialog.Builder(requireContext())
+            .setTitle("Confirm Exit")
+            .setMessage("Are you sure you want to exit?")
+            .setPositiveButton("Yes") { dialog, _ ->
+                authViewModel.logout()
+                val action = HomeFragmentDirections.actionHomeFragmentToLoginFragment()
+                findNavController().navigate(action)
+                dialog.dismiss() // Dialogu kapat
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss() // Dialogu kapat
+            }
+            .create()
+
+        alertDialog.show()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
+
+
 }

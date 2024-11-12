@@ -7,6 +7,8 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.mapsapp.R
 import com.example.mapsapp.model.Message
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class ChatAdapter(private var messages: List<Message>, private val currentUserId: String) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -50,10 +52,15 @@ class ChatAdapter(private var messages: List<Message>, private val currentUserId
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = messages[position]
+        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val time = sdf.format(message.timestamp)
+
         if (holder is UserMessageViewHolder) {
             holder.messageTextView.text = message.message
+            holder.timeTextView.text = time
         } else if (holder is OtherMessageViewHolder) {
             holder.messageTextView.text = message.message
+            holder.timeTextView.text = time
         }
     }
 

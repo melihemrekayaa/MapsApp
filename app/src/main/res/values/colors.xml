@@ -12,4 +12,8 @@
     <color name="light_green">#3AAE09</color>
     <color name="yellow">#EAE78F</color>
     <color name="red">#E82039</color>
+    <color name="bottom_nav_selected_color">#1E88E5</color> <!-- Seçili öğe için mavi ton -->
+    <color name="bottom_nav_unselected_color">#9E9E9E</color> <!-- Seçili olmayan öğe için gri ton -->
+    <color name="bottom_nav_background_color">#E3F2FD</color> <!-- Arka plan rengi -->
+
 </resources>

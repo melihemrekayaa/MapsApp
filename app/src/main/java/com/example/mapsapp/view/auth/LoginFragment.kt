@@ -27,8 +27,8 @@ class LoginFragment : Fragment() {
         _binding = FragmentLoginBinding.inflate(inflater, container, false)
         val view = binding.root
 
+        // Eğer kullanıcı zaten giriş yapmışsa ana sayfaya yönlendir
         if (authViewModel.isLogin()) {
-            Toast.makeText(requireContext(), "Giriş Başarılı", Toast.LENGTH_SHORT).show()
             val action = LoginFragmentDirections.actionLoginFragmentToHomeFragment()
             findNavController().navigate(action)
         }
@@ -37,7 +37,11 @@ class LoginFragment : Fragment() {
             val email = binding.emailEditText.text.toString()
             val password = binding.passwordEditText.text.toString()
 
-            authViewModel.login(email, password)
+            if (email.isNotEmpty() && password.isNotEmpty()) {
+                authViewModel.login(email, password)
+            } else {
+                Toast.makeText(requireContext(), "Lütfen tüm alanları doldurun", Toast.LENGTH_SHORT).show()
+            }
         }
 
         binding.registerBtn.setOnClickListener {
@@ -51,9 +55,13 @@ class LoginFragment : Fragment() {
                 val action = LoginFragmentDirections.actionLoginFragmentToHomeFragment()
                 findNavController().navigate(action)
             } else {
-                Toast.makeText(requireContext(), "Giriş Başarısız", Toast.LENGTH_SHORT).show()
+                // Burada sadece kullanıcı giriş başarısız olduğunda mesaj göster
+                if (!authViewModel.isLogin()) {
+                    Toast.makeText(requireContext(), "Giriş Başarısız", Toast.LENGTH_SHORT).show()
+                }
             }
         }
+
         return view
     }
 
@@ -62,3 +70,4 @@ class LoginFragment : Fragment() {
         _binding = null
     }
 }
+
