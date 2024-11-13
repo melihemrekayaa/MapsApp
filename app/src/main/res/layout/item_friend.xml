@@ -5,13 +5,31 @@
     android:orientation="horizontal"
     android:padding="16dp">
 
-    <ImageView
-        android:id="@+id/friendProfilePic"
+
+    <FrameLayout
         android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginEnd="16dp"
-        android:scaleType="centerCrop"
-        android:background="@drawable/circle_shape" />
+        android:layout_height="48dp">
+
+
+        <ImageView
+            android:id="@+id/friendProfilePic"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:scaleType="centerCrop"
+            android:background="@drawable/circle_shape" />
+
+        <!-- Durum Göstergesi (Sağ Alt Köşe) -->
+        <ImageView
+            android:id="@+id/friendStatusIcon"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="4dp"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/circle_green"
+            android:contentDescription="Friend Status" />
+    </FrameLayout>
+
 
     <TextView
         android:id="@+id/friendName"
@@ -20,5 +38,7 @@
         android:text="Friend Name"
         android:textSize="16sp"
         android:textColor="@android:color/black"
-        android:layout_gravity="center_vertical" />
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="16dp" />
+
 </LinearLayout>

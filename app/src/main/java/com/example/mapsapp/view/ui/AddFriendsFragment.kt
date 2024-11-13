@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.mapsapp.R
 import com.example.mapsapp.adapter.AddFriendsAdapter
 import com.example.mapsapp.databinding.FragmentAddFriendsBinding
 import com.example.mapsapp.viewmodel.AddFriendsViewModel
@@ -33,9 +32,11 @@ class AddFriendsFragment : Fragment() {
             Snackbar.make(binding.root, "Friend request sent", Snackbar.LENGTH_LONG)
                 .setAction("Undo") {
                     viewModel.cancelFriendRequest(user.uid)
+                    adapter.updateFriendStatus(user, false)
                 }.show()
         }, { user ->
             viewModel.cancelFriendRequest(user.uid)
+            adapter.updateFriendStatus(user, false)
         })
 
         binding.recyclerView.adapter = adapter

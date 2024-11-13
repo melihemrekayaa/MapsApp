@@ -1,5 +1,6 @@
 package com.example.mapsapp.view.ui
 
+import FriendsAdapter
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -12,7 +13,6 @@ import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mapsapp.R
-import com.example.mapsapp.adapter.FriendsAdapter
 import com.example.mapsapp.databinding.FragmentChatInterfaceBinding
 import com.example.mapsapp.viewmodel.ChatInterfaceViewModel
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -36,7 +36,7 @@ class ChatInterfaceFragment : Fragment() {
         _binding = FragmentChatInterfaceBinding.inflate(inflater, container, false)
         auth = FirebaseAuth.getInstance()
 
-        adapter = FriendsAdapter(emptyList()) { user ->
+        adapter = FriendsAdapter(mutableListOf()) { user ->
             val bundle = Bundle().apply {
                 putString("receiverId", user.uid)
             }
@@ -60,10 +60,10 @@ class ChatInterfaceFragment : Fragment() {
         }
 
         chatInterfaceViewModel.friends.observe(viewLifecycleOwner, Observer { friends ->
-            adapter.updateFriends(friends)
+            adapter.updateFriends(friends) // Güncelleme işlemi
         })
 
-        chatInterfaceViewModel.loadFriends()
+        chatInterfaceViewModel.loadFriends() // Arkadaşları yükle
 
         return binding.root
     }
@@ -73,3 +73,4 @@ class ChatInterfaceFragment : Fragment() {
         _binding = null
     }
 }
+

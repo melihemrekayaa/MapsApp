@@ -5,7 +5,7 @@
     android:layout_margin="8dp"
     app:cardCornerRadius="12dp"
     app:cardElevation="4dp"
-        app:cardBackgroundColor="@color/card_background"> <!-- Arkaplandan ayıran renk -->
+    app:cardBackgroundColor="@color/card_background">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -13,6 +13,7 @@
         android:orientation="horizontal"
         android:padding="8dp">
 
+        <!-- Profil Resmi -->
         <ImageView
             android:id="@+id/userProfilePic"
             android:layout_width="48dp"
@@ -21,6 +22,7 @@
             android:scaleType="centerCrop"
             android:background="@drawable/circle_shape" />
 
+        <!-- Kullanıcı Adı -->
         <TextView
             android:id="@+id/userName"
             android:layout_width="0dp"
@@ -42,7 +44,7 @@
             app:srcCompat="@drawable/ic_add_friend"
             app:tint="@color/primary" />
 
-        <!-- Cancel Button (Görünmez) -->
+        <!-- İstek İptal Etme Butonu -->
         <ImageButton
             android:id="@+id/cancelButton"
             android:layout_width="48dp"
@@ -53,6 +55,5 @@
             android:padding="8dp"
             app:srcCompat="@drawable/ic_cancel"
             app:tint="@color/red" />
-
     </LinearLayout>
 </androidx.cardview.widget.CardView>

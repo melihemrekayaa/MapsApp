@@ -1,50 +1,47 @@
-package com.example.mapsapp.adapter
-
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.mapsapp.R
+import com.example.mapsapp.databinding.ItemFriendBinding
 import com.example.mapsapp.model.User
 
 class FriendsAdapter(
-    private var friends: List<User>,
-    private val onFriendClick: (User) -> Unit
-) : RecyclerView.Adapter<FriendsAdapter.FriendViewHolder>() {
+    private var friends: MutableList<User>,
+    private val onItemClick: (User) -> Unit // Kullanıcıyı seçmek için lambda
+) : RecyclerView.Adapter<FriendsAdapter.FriendsViewHolder>() {
 
-    inner class FriendViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val friendName: TextView = itemView.findViewById(R.id.friendName)
-        private val friendProfilePic: ImageView = itemView.findViewById(R.id.friendProfilePic)
+    inner class FriendsViewHolder(private val binding: ItemFriendBinding) : RecyclerView.ViewHolder(binding.root) {
+        fun bind(user: User) {
+            binding.friendName.text = user.name
 
-        fun bind(friend: User) {
-            friendName.text = friend.name
-            Glide.with(itemView.context)
-                .load(friend.profileImageUrl)
-                .placeholder(R.drawable.placeholder_profile)
-                .into(friendProfilePic)
+            Glide.with(binding.root.context)
+                .load(user.profileImageUrl)
+                .placeholder(R.drawable.friend_status_indicator)
+                .error(R.drawable.friend_status_indicator)
+                .into(binding.friendProfilePic)
 
-            itemView.setOnClickListener {
-                onFriendClick(friend)
+            binding.root.setOnClickListener {
+                onItemClick(user) // Seçilen kullanıcıyı geri döndür
             }
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FriendViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_friend, parent, false)
-        return FriendViewHolder(view)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FriendsViewHolder {
+        val binding = ItemFriendBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return FriendsViewHolder(binding)
     }
 
-    override fun onBindViewHolder(holder: FriendViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: FriendsViewHolder, position: Int) {
         holder.bind(friends[position])
     }
 
     override fun getItemCount(): Int = friends.size
 
     fun updateFriends(newFriends: List<User>) {
-        this.friends = newFriends
+        friends.clear()
+        friends.addAll(newFriends)
         notifyDataSetChanged()
     }
 }
