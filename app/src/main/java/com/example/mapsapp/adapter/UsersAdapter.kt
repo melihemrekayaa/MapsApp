@@ -25,16 +25,12 @@ class UsersAdapter(
 
     override fun getItemCount() = users.size
 
-    fun updateUsers(newUsers: List<User>) {
-        users = newUsers
-        notifyDataSetChanged()
-    }
 
     inner class UserViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val userNameTextView: TextView = itemView.findViewById(R.id.userNameTextView)
 
         fun bind(user: User) {
-            userNameTextView.text = user.email?.split("@")?.get(0)
+            userNameTextView.text = user.name
             itemView.setOnClickListener {
                 onUserClicked(user)
             }

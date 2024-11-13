@@ -15,5 +15,12 @@
     <color name="bottom_nav_selected_color">#1E88E5</color> <!-- Seçili öğe için mavi ton -->
     <color name="bottom_nav_unselected_color">#9E9E9E</color> <!-- Seçili olmayan öğe için gri ton -->
     <color name="bottom_nav_background_color">#E3F2FD</color> <!-- Arka plan rengi -->
+    <color name="primary">#1E88E5</color> <!-- Primary rengi (Mavi ton) -->
+    <color name="user_message_background">#BBDEFB</color> <!-- Kullanıcı mesajı -->
+    <color name="other_message_background">#E0E0E0</color> <!-- Karşı taraf mesajı -->
+    <color name="message_text">#000000</color> <!-- Mesaj metni rengi -->
+    <color name="card_background">#F5F5F5</color> <!-- Hafif gri ton -->
+
+
 
 </resources>

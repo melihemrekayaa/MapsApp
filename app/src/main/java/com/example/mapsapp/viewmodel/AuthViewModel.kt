@@ -20,8 +20,8 @@ class AuthViewModel @Inject constructor(
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> get() = _error
 
-    fun register(email: String, password: String, location: GeoPoint) {
-        authRepository.register(email, password, location) { firebaseUser ->
+    fun register(email: String, password: String) {
+        authRepository.register(email, password) { firebaseUser ->
             if (firebaseUser != null) {
                 _user.postValue(firebaseUser)
             } else {
