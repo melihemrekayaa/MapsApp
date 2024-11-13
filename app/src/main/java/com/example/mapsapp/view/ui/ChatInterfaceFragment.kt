@@ -6,40 +6,37 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mapsapp.R
-import com.example.mapsapp.adapter.UsersAdapter
+import com.example.mapsapp.adapter.FriendsAdapter
 import com.example.mapsapp.databinding.FragmentChatInterfaceBinding
-import com.example.mapsapp.model.User
-import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatInterfaceViewModel
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class ChatInterfaceFragment : BaseFragment() {
+class ChatInterfaceFragment : Fragment() {
 
     private var _binding: FragmentChatInterfaceBinding? = null
     private val binding get() = _binding!!
-    private lateinit var auth: FirebaseAuth
     private val chatInterfaceViewModel: ChatInterfaceViewModel by viewModels()
-    private lateinit var adapter: UsersAdapter
+    private lateinit var auth: FirebaseAuth
+    private lateinit var adapter: FriendsAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-
+    ): View {
         _binding = FragmentChatInterfaceBinding.inflate(inflater, container, false)
-        val view = binding.root
         auth = FirebaseAuth.getInstance()
 
-
-
-        adapter = UsersAdapter(emptyList()) { user ->
+        adapter = FriendsAdapter(emptyList()) { user ->
             val bundle = Bundle().apply {
                 putString("receiverId", user.uid)
             }
@@ -49,16 +46,26 @@ class ChatInterfaceFragment : BaseFragment() {
         binding.recyclerView.adapter = adapter
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
-        chatInterfaceViewModel.users.observe(viewLifecycleOwner, Observer { users ->
-            adapter.updateUsers(users)
-            if (users.isEmpty()) {
-                Toast.makeText(requireContext(), "Error loading users", Toast.LENGTH_SHORT).show()
-            }
+        binding.fabAddFriend.setOnClickListener {
+            findNavController().navigate(R.id.action_chatInterfaceFragment_to_addFriendsFragment)
+        }
+
+        val bottomNavView = requireActivity().findViewById<BottomNavigationView>(R.id.bottomNavBar)
+
+        // BottomNavigationView yüksekliğini al ve FAB'nin alt marjını ayarla
+        bottomNavView?.let {
+            val fabParams = binding.fabAddFriend.layoutParams as ConstraintLayout.LayoutParams
+            fabParams.bottomMargin = it.height + 16 // 16dp ek boşluk
+            binding.fabAddFriend.layoutParams = fabParams
+        }
+
+        chatInterfaceViewModel.friends.observe(viewLifecycleOwner, Observer { friends ->
+            adapter.updateFriends(friends)
         })
 
-        chatInterfaceViewModel.loadUsers()
+        chatInterfaceViewModel.loadFriends()
 
-        return view
+        return binding.root
     }
 
     override fun onDestroyView() {

@@ -9,7 +9,7 @@
         android:id="@+id/text_message_body"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/rounded_rectangle_other"
+        android:background="@drawable/other_message_background"
         android:backgroundTint="#ece5dd"
         android:textColor="@android:color/black"
         android:paddingEnd="56dp"

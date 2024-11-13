@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.mapsapp.R
 import com.example.mapsapp.model.Message
@@ -56,9 +57,13 @@ class ChatAdapter(private var messages: List<Message>, private val currentUserId
         val time = sdf.format(message.timestamp)
 
         if (holder is UserMessageViewHolder) {
+            holder.messageTextView.background = ContextCompat.getDrawable(holder.itemView.context, R.drawable.user_message_background)
+            holder.messageTextView.textAlignment = View.TEXT_ALIGNMENT_TEXT_END
             holder.messageTextView.text = message.message
             holder.timeTextView.text = time
         } else if (holder is OtherMessageViewHolder) {
+            holder.messageTextView.background = ContextCompat.getDrawable(holder.itemView.context, R.drawable.other_message_background)
+            holder.messageTextView.textAlignment = View.TEXT_ALIGNMENT_TEXT_START
             holder.messageTextView.text = message.message
             holder.timeTextView.text = time
         }

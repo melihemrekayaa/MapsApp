@@ -111,6 +111,7 @@ dependencies {
     implementation ("com.google.code.gson:gson:2.10.1")
     implementation ("com.mesibo.api:webrtc:1.0.5")
     implementation ("com.guolindev.permissionx:permissionx:1.6.1")
+    implementation ("com.github.bumptech.glide:glide:4.16.0")
 
     // Dependencies to test
     testImplementation(kotlin("test"))

@@ -66,6 +66,9 @@
         <action
             android:id="@+id/action_chatInterfaceFragment_to_chatFragment"
             app:destination="@id/chatFragment" />
+        <action
+            android:id="@+id/action_chatInterfaceFragment_to_addFriendsFragment"
+            app:destination="@id/addFriendsFragment" />
     </fragment>
 
     <activity
@@ -79,5 +82,10 @@
         android:name="com.example.mapsapp.view.chatbot.ChatBotActivity"
         android:label="activity_chat_bot"
         tools:layout="@layout/activity_chat_bot" />
+    <fragment
+        android:id="@+id/addFriendsFragment"
+        android:name="com.example.mapsapp.view.ui.AddFriendsFragment"
+        android:label="fragment_add_friends"
+        tools:layout="@layout/fragment_add_friends" />
 
 </navigation>
