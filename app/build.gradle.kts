@@ -1,3 +1,4 @@
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -19,7 +20,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.mapsapp"
-        minSdk = 24
+        minSdk = 29
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -54,6 +55,8 @@ android {
 
     buildFeatures{
         buildConfig = true
+        viewBinding = true
+        compose = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -61,10 +64,6 @@ android {
     }
     kotlinOptions {
         jvmTarget = "1.8"
-    }
-    buildFeatures {
-        viewBinding = true
-        compose = true
     }
 
     kapt {
@@ -88,15 +87,15 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
 
-    implementation ("com.google.firebase:firebase-auth-ktx:23.0.0")
-    implementation ("com.google.firebase:firebase-firestore-ktx:25.0.0")
-    implementation ("com.google.firebase:firebase-analytics-ktx:22.0.2")
+    implementation (libs.firebase.auth.ktx)
+    implementation (libs.firebase.firestore.ktx)
+    implementation (libs.firebase.analytics.ktx)
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation ("com.squareup.okhttp3:logging-interceptor:4.9.1")
-    implementation("org.json:json:20210307")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    implementation(libs.kotlin.stdlib)
+    implementation(libs.okhttp)
+    implementation (libs.logging.interceptor)
+    implementation(libs.json)
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -106,12 +105,12 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.recyclerview)
 
-    implementation ("com.google.firebase:firebase-bom:32.2.0")
-    implementation ("com.google.firebase:firebase-database-ktx:20.2.2")
-    implementation ("com.google.code.gson:gson:2.10.1")
-    implementation ("com.mesibo.api:webrtc:1.0.5")
-    implementation ("com.guolindev.permissionx:permissionx:1.6.1")
-    implementation ("com.github.bumptech.glide:glide:4.16.0")
+    implementation (libs.firebase.bom)
+    implementation (libs.firebase.database.ktx)
+    implementation (libs.gson)
+    implementation (libs.webrtc)
+    implementation (libs.permissionx)
+    implementation (libs.glide)
 
     // Dependencies to test
     testImplementation(kotlin("test"))
@@ -126,8 +125,8 @@ dependencies {
     testImplementation("com.squareup.okhttp3:mockwebserver:4.9.1")
 
     // Retrofit
-    implementation ("com.squareup.retrofit2:retrofit:2.11.0")
-    implementation ("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation (libs.retrofit)
+    implementation (libs.converter.gson)
 
 
 
@@ -135,9 +134,9 @@ dependencies {
     implementation(libs.play.services.maps)
     kapt ("com.google.dagger:hilt-compiler:2.49")
 
-    implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4")
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
     implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.8.4")
-    implementation ("androidx.navigation:navigation-fragment-ktx:2.7.7")
+    implementation ("androidx.navigation:navigation-fragment-ktx:2.8.4")
     implementation ("androidx.navigation:navigation-ui-ktx:2.7.7")
 
 
