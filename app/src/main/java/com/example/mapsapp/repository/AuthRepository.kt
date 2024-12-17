@@ -1,136 +1,121 @@
 package com.example.mapsapp.repository
 
+import android.util.Log
 import com.example.mapsapp.model.User
-import com.example.mapsapp.webrtc.firebaseClient.FirebaseClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class AuthRepository @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore,
-    private val firebaseClient: FirebaseClient
+    private val firestore: FirebaseFirestore
 ) {
+
+    companion object {
+        private const val USERS_COLLECTION = "Users"
+        private const val FRIEND_REQUESTS_COLLECTION = "friendRequests"
+        private const val FRIENDS_COLLECTION = "friends"
+    }
 
     fun getCurrentUser(): FirebaseUser? {
         return auth.currentUser
     }
 
-    fun register(email: String, password: String, onComplete: (FirebaseUser?) -> Unit) {
-        auth.createUserWithEmailAndPassword(email, password)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val user = auth.currentUser
-                    addUserToFirestore(user)
-                    // WebRTC Firebase'e Kullanıcı Kaydı
-                    firebaseClient.addUserToWebRTC(getUsernameFromEmail(email), password) { success ->
-                        if (success) {
-                            onComplete(user)
-                        } else {
-                            onComplete(null)
-                        }
-                    }
-                } else {
-                    onComplete(null)
-                }
-            }
-    }
+    suspend fun register(name: String, email: String, password: String): Result<String> {
+        return try {
+            val result = auth.createUserWithEmailAndPassword(email, password).await()
+            val userId = result.user?.uid ?: throw Exception("User ID is null")
 
-    fun login(email: String, password: String, onComplete: (FirebaseUser?) -> Unit) {
-        auth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    onComplete(auth.currentUser)
-                } else {
-                    onComplete(null)
-                }
-            }
-    }
-
-    private fun addUserToFirestore(firebaseUser: FirebaseUser?) {
-        firebaseUser?.let { user ->
-            val userData = hashMapOf(
-                "uid" to user.uid,
-                "email" to user.email
+            // Kullanıcı verilerini Firestore'a kaydet
+            val user = User(
+                uid = userId,
+                name = name,
+                email = email,
+                friends = listOf(),
+                friendRequests = listOf()
             )
-            firestore.collection("users").document(user.uid).set(userData)
+            firestore.collection("users").document(userId).set(user).await()
+
+            Result.success("User registered successfully")
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
-    private fun getUsernameFromEmail(email: String): String {
-        return email.substringBefore("@")
-    }
-
-    fun loadUsers(onResult: (List<User>) -> Unit) {
-        firestore.collection("users").get().addOnSuccessListener { snapshot ->
-            val users = snapshot.documents.mapNotNull { doc ->
-                doc.toObject(User::class.java)
-            }
-            onResult(users)
+    suspend fun login(email: String, password: String): Result<String> {
+        return try {
+            auth.signInWithEmailAndPassword(email, password).await()
+            Result.success("Login successful")
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
-    fun loadFriends(onResult: (List<User>) -> Unit) {
-        val currentUser = getCurrentUser()?.uid ?: return
-        firestore.collection("users").document(currentUser).collection("friends")
-            .get().addOnSuccessListener { snapshot ->
-                val friends = snapshot.documents.mapNotNull { doc ->
-                    doc.toObject(User::class.java)
-                }
-                onResult(friends)
-            }
-    }
-
-    fun sendFriendRequest(receiverId: String, onComplete: (Boolean) -> Unit) {
-        val currentUser = getCurrentUser()?.uid
-        if (currentUser.isNullOrEmpty() || receiverId.isEmpty()) {
-            onComplete(false)
-            return
+    suspend fun loadUsers(): List<User> {
+        return try {
+            Log.d("AuthRepository", "Fetching users from Firestore")
+            val snapshot = firestore.collection("users").get().await()
+            val users = snapshot.toObjects(User::class.java)
+            Log.d("AuthRepository", "Fetched users: $users")
+            users
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "Error fetching users: ${e.message}")
+            emptyList()
         }
-
-        val requestData = mapOf("from" to currentUser)
-        firestore.collection("users").document(receiverId)
-            .collection("friendRequests").document(currentUser)
-            .set(requestData)
-            .addOnSuccessListener { onComplete(true) }
-            .addOnFailureListener { onComplete(false) }
     }
 
 
-    fun cancelFriendRequest(receiverId: String, onComplete: (Boolean) -> Unit) {
-        val currentUser = getCurrentUser()?.uid
 
-        if (receiverId.isEmpty() || currentUser.isNullOrEmpty()) {
-            onComplete(false)
-            return
+    suspend fun loadFriends(): List<User> {
+        val currentUser = getCurrentUser()?.uid ?: return emptyList()
+        return try {
+            val snapshot = firestore.collection(USERS_COLLECTION)
+                .document(currentUser)
+                .collection(FRIENDS_COLLECTION).get().await()
+
+            snapshot.documents.mapNotNull { it.toObject(User::class.java) }
+        } catch (e: Exception) {
+            emptyList()
         }
+    }
 
-        firestore.collection("users").document(receiverId)
-            .collection("friendRequests").document(currentUser).delete()
-            .addOnSuccessListener { onComplete(true) }
-            .addOnFailureListener { onComplete(false) }
+    suspend fun sendFriendRequest(receiverId: String): Boolean {
+        return try {
+            val currentUser = getCurrentUser()?.uid ?: return false
+            val requestData = mapOf("from" to currentUser)
+            firestore.collection("users").document(receiverId)
+                .collection("friendRequests").document(currentUser)
+                .set(requestData).await()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun cancelFriendRequest(receiverId: String): Boolean {
+        return try {
+            val currentUser = getCurrentUser()?.uid ?: return false
+            firestore.collection("users").document(receiverId)
+                .collection("friendRequests").document(currentUser).delete().await()
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
 
     fun updateFirestoreUserStatus(status: String) {
         val user = auth.currentUser ?: return
-        val userDocRef = firestore.collection("users").document(user.uid)
+        val userDocRef = firestore.collection(USERS_COLLECTION).document(user.uid)
         userDocRef.update("status", status)
-            .addOnSuccessListener {
-                // Başarıyla güncellendi
-            }
-            .addOnFailureListener {
-                // Hata işleme
-            }
     }
-
 
     fun setupUserPresence() {
         val user = auth.currentUser ?: return
@@ -140,7 +125,7 @@ class AuthRepository @Inject constructor(
         val connectedRef = FirebaseDatabase.getInstance().getReference(".info/connected")
 
         connectedRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
+            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
                 val connected = snapshot.getValue(Boolean::class.java) ?: false
                 if (connected) {
                     userStatusDatabaseRef.setValue("ONLINE")
@@ -148,11 +133,50 @@ class AuthRepository @Inject constructor(
                 }
             }
 
-            override fun onCancelled(error: DatabaseError) {
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
                 // Log or handle the error
             }
         })
     }
+
+    suspend fun loadFriendRequests(): List<User> {
+        val currentUserId = getCurrentUser()?.uid ?: return emptyList()
+        val userDoc = firestore.collection("users").document(currentUserId).get().await()
+        val requestIds = userDoc["friendRequests"] as? List<String> ?: emptyList()
+
+        val users = mutableListOf<User>()
+        for (id in requestIds) {
+            val userSnapshot = firestore.collection("users").document(id).get().await()
+            val user = userSnapshot.toObject(User::class.java)
+            user?.let { users.add(it) }
+        }
+        return users
+    }
+
+    suspend fun acceptFriendRequest(senderId: String): Boolean {
+        return try {
+            val currentUser = getCurrentUser()?.uid ?: return false
+            val senderRef = firestore.collection("users").document(senderId)
+            val currentUserRef = firestore.collection("users").document(currentUser)
+
+            firestore.runTransaction { transaction ->
+                // Sender tarafında arkadaş ekleme
+                transaction.update(senderRef, "friends", FieldValue.arrayUnion(currentUser))
+
+                // CurrentUser tarafında arkadaş ekleme
+                transaction.update(currentUserRef, "friends", FieldValue.arrayUnion(senderId))
+
+                // İsteği sender tarafından kaldır
+                transaction.update(currentUserRef, "friendRequests", FieldValue.arrayRemove(senderId))
+            }.await()
+            true
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "Error accepting friend request: ${e.message}")
+            false
+        }
+    }
+
+
 
 
     fun logout() {

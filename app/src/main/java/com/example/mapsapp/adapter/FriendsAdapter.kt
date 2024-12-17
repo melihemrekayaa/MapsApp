@@ -1,27 +1,26 @@
+package com.example.mapsapp.adapter
+
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.example.mapsapp.R
 import com.example.mapsapp.databinding.ItemFriendBinding
 import com.example.mapsapp.model.User
 
 class FriendsAdapter(
-    private var friends: MutableList<User>,
+    friends: List<User>, // Immutable List kullanılıyor
     private val onItemClick: (User) -> Unit // Kullanıcıyı seçmek için lambda
 ) : RecyclerView.Adapter<FriendsAdapter.FriendsViewHolder>() {
 
+    private val friendList = friends.toMutableList() // MutableList'e dönüştürme
+
     inner class FriendsViewHolder(private val binding: ItemFriendBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(user: User) {
+            // Kullanıcı adını göster
             binding.friendName.text = user.name
 
-            Glide.with(binding.root.context)
-                .load(user.profileImageUrl)
-                .placeholder(R.drawable.friend_status_indicator)
-                .error(R.drawable.friend_status_indicator)
-                .into(binding.friendProfilePic)
+            // Profil resmi kullanmayacağımız için Glide kısmını kaldırdık
 
+            // Seçilen arkadaş için onClickListener
             binding.root.setOnClickListener {
                 onItemClick(user) // Seçilen kullanıcıyı geri döndür
             }
@@ -34,14 +33,15 @@ class FriendsAdapter(
     }
 
     override fun onBindViewHolder(holder: FriendsViewHolder, position: Int) {
-        holder.bind(friends[position])
+        holder.bind(friendList[position])
     }
 
-    override fun getItemCount(): Int = friends.size
+    override fun getItemCount(): Int = friendList.size
 
+    // Arkadaş listesini güncelle
     fun updateFriends(newFriends: List<User>) {
-        friends.clear()
-        friends.addAll(newFriends)
+        friendList.clear()
+        friendList.addAll(newFriends)
         notifyDataSetChanged()
     }
 }

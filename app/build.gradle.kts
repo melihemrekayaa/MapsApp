@@ -1,4 +1,3 @@
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -9,9 +8,6 @@ plugins {
     alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
     id("androidx.navigation.safeargs")
 }
-
-val MAPTILER_API_KEY = "7FSWmFQZTihljKDoGZiO"
-val tomtomApiKey: String by project
 
 android {
 
@@ -28,12 +24,8 @@ android {
         renderscriptSupportModeEnabled = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "MAPTILER_API_KEY", "\"${MAPTILER_API_KEY}\"")
-        vectorDrawables {
-            useSupportLibrary = true
-        }
-    }
 
+    }
     packaging {
         jniLibs.pickFirsts.add("lib/**/libc++_shared.so")
         resources {
@@ -49,9 +41,7 @@ android {
             )
         }
     }
-    buildTypes.configureEach {
-        buildConfigField("String", "TOMTOM_API_KEY", "\"$tomtomApiKey\"")
-    }
+
 
     buildFeatures{
         buildConfig = true
@@ -105,12 +95,17 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.recyclerview)
 
-    implementation (libs.firebase.bom)
+    implementation (platform(libs.firebase.bom))
     implementation (libs.firebase.database.ktx)
     implementation (libs.gson)
     implementation (libs.webrtc)
     implementation (libs.permissionx)
     implementation (libs.glide)
+
+    implementation (libs.androidx.swiperefreshlayout)
+    implementation (libs.androidx.constraintlayout.v220)
+
+
 
     // Dependencies to test
     testImplementation(kotlin("test"))

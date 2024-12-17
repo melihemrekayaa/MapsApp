@@ -1,9 +1,12 @@
 package com.example.mapsapp.webrtc.ui
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.commit
 import androidx.navigation.findNavController
@@ -28,12 +31,17 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
     private lateinit var views: ActivityMainWebrtcBinding
     private var username: String? = null
 
+    companion object {
+        const val REQUEST_CODE = 1001
+    }
+
     @Inject
     lateinit var mainRepository: MainRepository
     @Inject
     lateinit var mainServiceRepository: MainServiceRepository
     private var mainAdapter: MainRecyclerViewAdapter? = null
 
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         views = ActivityMainWebrtcBinding.inflate(layoutInflater)
@@ -47,6 +55,14 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
             finish()
             return
         }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permissions = arrayOf(
+                android.Manifest.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION,
+            )
+            ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE)
+        }
+
 
         init()
         val receiverId = intent.getStringExtra("receiverId")
