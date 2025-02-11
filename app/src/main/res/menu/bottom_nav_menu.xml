@@ -1,19 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
     <item
-        android:id="@+id/homeFragment"
-        android:icon="@drawable/home"
-        android:title="Home" />
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_home"
+        android:title="Home"
+        app:showAsAction="ifRoom" />
+
     <item
-        android:id="@+id/mapsActivity"
-        android:icon="@drawable/maps"
-        android:title="Maps" />
+        android:id="@+id/nav_maps"
+        android:icon="@drawable/ic_maps"
+        android:title="Maps"
+        app:showAsAction="ifRoom" />
+
     <item
-        android:id="@+id/chatInterfaceFragment"
+        android:id="@+id/nav_chat"
         android:icon="@drawable/chat"
-        android:title="Chat" />
+        android:title="Chat"
+        app:showAsAction="ifRoom" />
+
     <item
-        android:id="@+id/chatBotActivity"
+        android:id="@+id/nav_chatbot"
         android:icon="@drawable/chatbot"
-        android:title="AI Chat" />
+        android:title="Bot"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/nav_voice"
+        android:icon="@drawable/ic_call"
+        android:title="Voice"
+        app:showAsAction="ifRoom" />
 </menu>

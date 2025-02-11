@@ -1,6 +1,8 @@
 package com.example.mapsapp.repository
 
 import android.util.Log
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.example.mapsapp.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -11,6 +13,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.coroutineContext
 
 @Singleton
 class AuthRepository @Inject constructor(
@@ -49,14 +52,21 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    suspend fun login(email: String, password: String): Result<String> {
-        return try {
-            auth.signInWithEmailAndPassword(email, password).await()
-            Result.success("Login successful")
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    fun login(email: String, password: String, onComplete: (FirebaseUser?,String?) -> Unit) {
+        auth.signInWithEmailAndPassword(email,password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful){
+                    val user = auth.currentUser
+                    onComplete(user,null)
+                }
+                else {
+                    onComplete(null,task.exception?.message ?: "Login Failed")
+                }
+            }
     }
+
+
+
 
     suspend fun loadUsers(): List<User> {
         return try {
@@ -139,45 +149,51 @@ class AuthRepository @Inject constructor(
         })
     }
 
-    suspend fun loadFriendRequests(): List<User> {
-        val currentUserId = getCurrentUser()?.uid ?: return emptyList()
-        val userDoc = firestore.collection("users").document(currentUserId).get().await()
-        val requestIds = userDoc["friendRequests"] as? List<String> ?: emptyList()
+    fun loadFriendRequests(userUid: String, onComplete: (List<User>) -> Unit) {
+        val friendRequestsRef = firestore.collection("users")
+            .document(userUid)
+            .collection("friendRequests")
 
-        val users = mutableListOf<User>()
-        for (id in requestIds) {
-            val userSnapshot = firestore.collection("users").document(id).get().await()
-            val user = userSnapshot.toObject(User::class.java)
-            user?.let { users.add(it) }
-        }
-        return users
-    }
-
-    suspend fun acceptFriendRequest(senderId: String): Boolean {
-        return try {
-            val currentUser = getCurrentUser()?.uid ?: return false
-            val senderRef = firestore.collection("users").document(senderId)
-            val currentUserRef = firestore.collection("users").document(currentUser)
-
-            firestore.runTransaction { transaction ->
-                // Sender tarafında arkadaş ekleme
-                transaction.update(senderRef, "friends", FieldValue.arrayUnion(currentUser))
-
-                // CurrentUser tarafında arkadaş ekleme
-                transaction.update(currentUserRef, "friends", FieldValue.arrayUnion(senderId))
-
-                // İsteği sender tarafından kaldır
-                transaction.update(currentUserRef, "friendRequests", FieldValue.arrayRemove(senderId))
-            }.await()
-            true
-        } catch (e: Exception) {
-            Log.e("AuthRepository", "Error accepting friend request: ${e.message}")
-            false
-        }
+        friendRequestsRef.get()
+            .addOnSuccessListener { documents ->
+                val requests = mutableListOf<User>()
+                for (document in documents) {
+                    val fromUid = document.getString("from") ?: continue
+                    firestore.collection("users").document(fromUid).get()
+                        .addOnSuccessListener { userDocument ->
+                            val user = User(
+                                uid = fromUid,
+                                name = userDocument.getString("name") ?: "Unknown",
+                                photoUrl = userDocument.getString("photoUrl")
+                            )
+                            requests.add(user)
+                            if (requests.size == documents.size()) {
+                                onComplete(requests)
+                            }
+                        }
+                }
+            }
+            .addOnFailureListener {
+                onComplete(emptyList()) // Hata varsa boş liste döndür
+            }
     }
 
 
+    fun acceptFriendRequest(currentUserUid: String, friendUid: String, onComplete: (Boolean) -> Unit) {
+        val currentUserRef = firestore.collection("users").document(currentUserUid)
+        val friendRef = firestore.collection("users").document(friendUid)
 
+        firestore.runBatch { batch ->
+            // İsteği kabul eden kullanıcının arkadaş listesine ekle
+            batch.update(currentUserRef, "friends", FieldValue.arrayUnion(friendUid))
+            // Arkadaşın arkadaş listesine bu kullanıcıyı ekle
+            batch.update(friendRef, "friends", FieldValue.arrayUnion(currentUserUid))
+            // İsteği sil
+            batch.delete(currentUserRef.collection("friendRequests").document(friendUid))
+        }.addOnCompleteListener { task ->
+            onComplete(task.isSuccessful)
+        }
+    }
 
     fun logout() {
         auth.signOut()

@@ -1,8 +1,12 @@
 package com.example.mapsapp.viewmodel
 
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mapsapp.repository.AuthRepository
+import com.example.mapsapp.util.SecurePreferences
 import com.google.firebase.auth.FirebaseUser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -11,8 +15,11 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val securePreferences : SecurePreferences
 ) : ViewModel() {
+
+
 
     // Kullanıcı oturum durumu
     private val _currentUser = MutableStateFlow(authRepository.getCurrentUser())
@@ -55,18 +62,49 @@ class AuthViewModel @Inject constructor(
     }
 
     // Kullanıcı giriş işlemi
-    fun login(email: String, password: String) {
-        performAuthOperation(
-            operation = { authRepository.login(email, password) },
-            successMessage = "Login successful"
-        )
+    fun login(email: String, password: String, staySignedIn: Boolean) {
+        viewModelScope.launch {
+            _authResult.value = AuthResult.Loading
+            authRepository.login(email,password){ firebaseUser, errorMessage ->
+                if (firebaseUser != null) {
+                    _currentUser.value = firebaseUser
+                    _authResult.value = AuthResult.Success("Login Successful")
+
+                    if (staySignedIn) saveLoginState(email,password)
+                }else{
+                    _authResult.value = AuthResult.Error(errorMessage ?: "Login Failed")
+                }
+            }
+        }
     }
+
+    private fun saveLoginState(email: String,password: String){
+        securePreferences.saveCredentials(email,password)
+    }
+
+    fun checkLoginState(){
+        val email = securePreferences.getEmail()
+        val password = securePreferences.getPassword()
+        val staySignedIn = securePreferences.shouldStaySignedIn()
+
+        if (staySignedIn && !email.isNullOrEmpty() && !password.isNullOrEmpty()){
+            login(email,password,staySignedIn)
+        }
+    }
+
+
 
     // Kullanıcı çıkış işlemi
     fun logout() {
         authRepository.logout()
         _currentUser.value = null
         _authResult.value = AuthResult.Success("Logged out successfully")
+        clearLoginState()
+    }
+
+
+    private fun clearLoginState(){
+        securePreferences.clearCredentials()
     }
 
     // Sealed class: Auth işlemlerinin durumları

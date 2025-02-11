@@ -15,17 +15,14 @@
         app:defaultNavHost="true"
         app:navGraph="@navigation/nav_graph" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNavBar"
+    <com.example.mapsapp.view.ui.components.CustomBottomNavView
+        android:id="@+id/customButtonNav"
         android:layout_width="match_parent"
-        android:layout_height="70dp"
-        android:backgroundTint="#E3F2FD"
-        android:elevation="8dp"
-        app:itemIconSize="28dp"
-        app:labelVisibilityMode="labeled"
-        app:itemTextColor="@color/bottom_nav_text_color"
-        app:itemIconTint="@color/bottom_nav_icon_color"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:menu="@menu/bottom_nav_menu" />
+        >
+    </com.example.mapsapp.view.ui.components.CustomBottomNavView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

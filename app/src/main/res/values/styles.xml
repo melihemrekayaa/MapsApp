@@ -11,4 +11,10 @@
         <item name="android:textSize">12sp</item>
         <item name="android:textColor">#666666</item> <!-- Gri renk -->
     </style>
+
+    <style name="CustomDialogTheme" parent="Theme.AppCompat.Light.Dialog">
+        <item name="android:windowMinWidthMajor">90%</item> <!-- Genişliği ekranın %90'ı yapar -->
+        <item name="android:windowMinWidthMinor">90%</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
 </resources>

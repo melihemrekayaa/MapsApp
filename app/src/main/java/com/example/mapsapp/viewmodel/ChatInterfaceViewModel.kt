@@ -24,6 +24,9 @@ class ChatInterfaceViewModel @Inject constructor(
     private val _friendRequests = MutableStateFlow<List<User>>(emptyList())
     val friendRequests: StateFlow<List<User>> get() = _friendRequests
 
+    private val _operationStatus = MutableLiveData<String?>()
+    val operationStatus: LiveData<String?> get() = _operationStatus
+
     fun loadFriends() {
         viewModelScope.launch {
             try {
@@ -35,32 +38,24 @@ class ChatInterfaceViewModel @Inject constructor(
         }
     }
 
-    fun loadFriendRequests() {
-        viewModelScope.launch {
-            try {
-                val requests = repository.loadFriendRequests()
-                _friendRequests.value = requests
-                Log.d("AddFriendsViewModel", "Friend requests: $requests")
-            } catch (e: Exception) {
-                Log.e("AddFriendsViewModel", "Error loading friend requests: ${e.message}")
+    fun loadFriendRequests(userUid: String) {
+        repository.loadFriendRequests(userUid) { requests ->
+            _friendRequests.value = requests
+        }
+    }
+
+    fun acceptFriendRequest(currentUserUid: String, friendUid: String) {
+        repository.acceptFriendRequest(currentUserUid, friendUid) { success ->
+            if (success) {
+                _operationStatus.postValue("Arkadaşlık isteği kabul edildi.")
+                loadFriendRequests(currentUserUid) // Listeyi güncelle
+            } else {
+                _operationStatus.postValue("Bir hata oluştu.")
             }
         }
     }
 
-    fun acceptFriendRequest(senderId: String) {
-        viewModelScope.launch {
-            try {
-                val success = repository.acceptFriendRequest(senderId)
-                if (success) {
-                    Log.d("ChatInterfaceViewModel", "Friend request accepted from $senderId")
-                    loadFriends() // Arkadaş listesini güncelle
-                    loadFriendRequests() // İstek listesini güncelle
-                } else {
-                    Log.e("ChatInterfaceViewModel", "Failed to accept friend request from $senderId")
-                }
-            } catch (e: Exception) {
-                Log.e("ChatInterfaceViewModel", "Error accepting friend request: ${e.message}")
-            }
-        }
+    fun clearOperationStatus() {
+        _operationStatus.postValue(null)
     }
 }

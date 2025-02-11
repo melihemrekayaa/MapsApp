@@ -1,6 +1,7 @@
 package com.example.mapsapp.di
 
 import android.content.Context
+import com.example.mapsapp.util.SecurePreferences
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
@@ -30,6 +31,12 @@ object AppModule {
     }
 
     @Provides
+    @Singleton
+    fun provideSecurePreferences(@ApplicationContext context: Context) : SecurePreferences {
+        return SecurePreferences(context)
+    }
+
+    @Provides
     fun provideContext(@ApplicationContext context: Context) : Context = context.applicationContext
 
     @Provides
@@ -40,4 +47,6 @@ object AppModule {
 
     @Provides
     fun provideDatabaseReference(db: FirebaseDatabase): DatabaseReference = db.reference
+
+
 }

@@ -13,7 +13,8 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_bias="0.5">
 
         <!-- Email Address Input -->
         <com.google.android.material.textfield.TextInputLayout
@@ -52,6 +53,30 @@
                 android:inputType="textPassword" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Stay Signed In Checkbox -->
+        <CheckBox
+            android:id="@+id/checkBoxStaySignedIn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Stay Signed In"
+            android:checked="false"
+            app:layout_constraintTop_toBottomOf="@id/passwordInputLayout"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="16dp" />
+
+        <!-- Login Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/loginButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Log In"
+            app:cornerRadius="8dp"
+            app:backgroundTint="@color/teal_700"
+            app:layout_constraintTop_toBottomOf="@id/checkBoxStaySignedIn"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="24dp" />
+
         <!-- ProgressBar -->
         <ProgressBar
             android:id="@+id/progressBar"
@@ -59,18 +84,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:visibility="gone"
-            app:layout_constraintTop_toBottomOf="@id/passwordInputLayout"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="24dp" />
-
-        <!-- Login Button -->
-        <Button
-            android:id="@+id/loginButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="Log In"
-            app:layout_constraintTop_toBottomOf="@id/progressBar"
+            android:contentDescription="Loading"
+            app:layout_constraintTop_toBottomOf="@id/checkBoxStaySignedIn"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             android:layout_marginTop="24dp" />

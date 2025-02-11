@@ -1,13 +1,19 @@
 package com.example.mapsapp.view.ui
 
+import android.app.Dialog
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.Guideline
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mapsapp.R
@@ -16,21 +22,24 @@ import com.example.mapsapp.adapter.FriendRequestsAdapter
 import com.example.mapsapp.databinding.FragmentChatInterfaceBinding
 import com.example.mapsapp.databinding.DialogFriendRequestsBinding
 import com.example.mapsapp.model.User
+import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatInterfaceViewModel
 import com.google.android.material.badge.BadgeDrawable
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class ChatInterfaceFragment : Fragment() {
+class ChatInterfaceFragment : BaseFragment() {
 
     private var _binding: FragmentChatInterfaceBinding? = null
     private val binding get() = _binding!!
     private val chatInterfaceViewModel: ChatInterfaceViewModel by viewModels()
-    private lateinit var adapter: FriendsAdapter
-    private lateinit var requestsAdapter: FriendRequestsAdapter
+    private lateinit var friendsAdapter: FriendsAdapter
+    private lateinit var friendRequestsAdapter: FriendRequestsAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -40,25 +49,35 @@ class ChatInterfaceFragment : Fragment() {
 
         setupRecyclerView()
         setupFabButton()
-        observeFriends()
-        observeFriendRequests()
+        observeData()
 
+        // Verileri yükle
         chatInterfaceViewModel.loadFriends()
-        chatInterfaceViewModel.loadFriendRequests()
+        chatInterfaceViewModel.loadFriendRequests(
+            FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        )
 
         return binding.root
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        applyBottomInsetToView(binding.requestButton)
+        adjustFabMargin()
+    }
+
     // RecyclerView'i ayarla
     private fun setupRecyclerView() {
-        adapter = FriendsAdapter(mutableListOf()) { user ->
+        friendsAdapter = FriendsAdapter(mutableListOf()) { user ->
             val bundle = Bundle().apply {
                 putString("receiverId", user.uid)
             }
             findNavController().navigate(R.id.chatFragment, bundle)
         }
-        binding.recyclerView.adapter = adapter
-        binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerView.apply {
+            adapter = friendsAdapter
+            layoutManager = LinearLayoutManager(requireContext())
+        }
     }
 
     // FAB butonunu ayarla
@@ -66,64 +85,68 @@ class ChatInterfaceFragment : Fragment() {
         binding.fabAddFriend.setOnClickListener {
             findNavController().navigate(R.id.action_chatInterfaceFragment_to_addFriendsFragment)
         }
-        adjustFabMargin()
     }
 
-    // BottomNavigationView'e göre FAB marjını ayarla
-    private fun adjustFabMargin() {
-        val bottomNavView = requireActivity().findViewById<BottomNavigationView>(R.id.bottomNavBar)
-        bottomNavView?.let {
-            val fabParams = binding.fabAddFriend.layoutParams as ConstraintLayout.LayoutParams
-            fabParams.bottomMargin = it.height + 16
-            binding.fabAddFriend.layoutParams = fabParams
-        }
-    }
+    // Tüm gözlemleri bir yerde toplamak
+    private fun observeData() {
 
-    // Arkadaşları gözlemle
-    private fun observeFriends() {
-        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
-            chatInterfaceViewModel.friends.collectLatest { friends ->
-                adapter.updateFriends(friends)
-            }
-        }
-    }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    chatInterfaceViewModel.friends.collectLatest { friends ->
+                        friendsAdapter.updateFriends(friends)
+                    }
+                }
 
-    // Arkadaşlık isteklerini gözlemle ve badge ekle
-    private fun observeFriendRequests() {
-        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
-            chatInterfaceViewModel.friendRequests.collectLatest { requests ->
-                setupBadge(requests.size)
-                binding.showRequestsButton.setOnClickListener {
-                    showFriendRequestsDialog(requests)
+                launch {
+                    chatInterfaceViewModel.friendRequests.collectLatest { requests ->
+                        setupFriendRequestButton(requests)
+                    }
                 }
             }
         }
+
     }
 
-    // BottomNavigationView'de "Chat" sekmesine badge ekle
-    private fun setupBadge(requestCount: Int) {
-        val bottomNavView = requireActivity().findViewById<BottomNavigationView>(R.id.bottomNavBar)
-        val badge = bottomNavView.getOrCreateBadge(R.id.chatFragment)
-        badge.isVisible = requestCount > 0
-        badge.number = requestCount
-        badge.badgeGravity = BadgeDrawable.TOP_END
+
+
+    // Arkadaşlık istekleri butonunu ayarla
+    private fun setupFriendRequestButton(requests: List<User>) {
+        binding.requestButton.setOnClickListener {
+            showFriendRequestsDialog(requests)
+        }
     }
 
-    // Arkadaşlık isteklerini BottomSheet ile göster
+    // Arkadaşlık isteklerini gösteren dialog
     private fun showFriendRequestsDialog(requests: List<User>) {
-        val dialog = BottomSheetDialog(requireContext())
+        val dialog = Dialog(requireContext(), R.style.CustomDialogTheme)
         val bindingSheet = DialogFriendRequestsBinding.inflate(layoutInflater)
+        dialog.setContentView(bindingSheet.root)
 
-        requestsAdapter = FriendRequestsAdapter(requests) { user ->
-            chatInterfaceViewModel.acceptFriendRequest(user.uid)
-            chatInterfaceViewModel.loadFriendRequests()
-            chatInterfaceViewModel.loadFriends()
+        friendRequestsAdapter = FriendRequestsAdapter(requests) { user ->
+            chatInterfaceViewModel.acceptFriendRequest(
+                currentUserUid = FirebaseAuth.getInstance().currentUser?.uid ?: "",
+                friendUid = user.uid
+            )
         }
 
-        bindingSheet.recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        bindingSheet.recyclerView.adapter = requestsAdapter
-        dialog.setContentView(bindingSheet.root)
+        bindingSheet.recyclerView.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = friendRequestsAdapter
+        }
+
         dialog.show()
+    }
+
+    private fun adjustFabMargin() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.fabAddFriend) { _, insets ->
+            val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val params = binding.fabAddFriend.layoutParams as ViewGroup.MarginLayoutParams
+            params.bottomMargin = systemBarInsets.bottom + 16 // Navigation bar yüksekliğini ekle
+            params.marginEnd = 16 // Sağ marj
+            binding.fabAddFriend.layoutParams = params
+            insets
+        }
     }
 
     override fun onDestroyView() {
@@ -131,3 +154,4 @@ class ChatInterfaceFragment : Fragment() {
         _binding = null
     }
 }
+

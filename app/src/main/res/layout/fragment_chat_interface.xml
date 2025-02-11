@@ -27,20 +27,18 @@
         app:layout_constraintBottom_toBottomOf="parent"
         android:padding="8dp" />
 
-
-
+    <!-- Requests Butonu -->
     <Button
-        android:id="@+id/showRequestsButton"
+        android:id="@+id/requestButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:layout_marginStart="148dp"
-        android:layout_marginBottom="288dp"
         android:text="Requests"
         android:visibility="visible"
         app:layout_constraintTop_toTopOf="@id/chat_interface_toolbar"
-        app:layout_constraintStart_toStartOf="parent" />
-    <!-- Arkadaş Ekleme FAB -->
+        app:layout_constraintEnd_toEndOf="@id/chat_interface_toolbar"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        />
 
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -52,7 +50,8 @@
         android:contentDescription="Add Friend"
         app:backgroundTint="@color/primary"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_goneMarginBottom="70dp" />
+        app:layout_constraintEnd_toEndOf="parent" />
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
