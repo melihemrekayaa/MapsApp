@@ -1,9 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
     app:startDestination="@id/loginFragment">
 
+    <!-- Login Fragment -->
     <fragment
         android:id="@+id/loginFragment"
         android:name="com.example.mapsapp.view.auth.LoginFragment"
@@ -17,6 +19,7 @@
             app:destination="@id/homeFragment" />
     </fragment>
 
+    <!-- Register Fragment -->
     <fragment
         android:id="@+id/registerFragment"
         android:name="com.example.mapsapp.view.auth.RegisterFragment"
@@ -26,6 +29,7 @@
             app:destination="@id/homeFragment" />
     </fragment>
 
+    <!-- Home Fragment -->
     <fragment
         android:id="@+id/homeFragment"
         android:name="com.example.mapsapp.view.ui.HomeFragment"
@@ -46,8 +50,12 @@
         <action
             android:id="@+id/action_homeFragment_to_chatInterfaceFragment"
             app:destination="@id/chatInterfaceFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
     </fragment>
 
+    <!-- Chat Fragment -->
     <fragment
         android:id="@+id/chatFragment"
         android:name="com.example.mapsapp.view.ui.ChatFragment"
@@ -56,8 +64,12 @@
             android:name="receiverId"
             app:argType="string"
             app:nullable="false" />
+        <action
+            android:id="@+id/action_chatFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
     </fragment>
 
+    <!-- Chat Interface Fragment -->
     <fragment
         android:id="@+id/chatInterfaceFragment"
         android:name="com.example.mapsapp.view.ui.ChatInterfaceFragment"
@@ -69,23 +81,66 @@
         <action
             android:id="@+id/action_chatInterfaceFragment_to_addFriendsFragment"
             app:destination="@id/addFriendsFragment" />
+        <action
+            android:id="@+id/action_chatInterfaceFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
     </fragment>
 
+    <!-- Add Friends Fragment -->
+    <fragment
+        android:id="@+id/addFriendsFragment"
+        android:name="com.example.mapsapp.view.ui.AddFriendsFragment"
+        android:label="fragment_add_friends"
+        tools:layout="@layout/fragment_add_friends" />
+
+    <!-- Settings Fragment -->
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.example.mapsapp.view.ui.SettingsFragment"
+        android:label="fragment_settings"
+        tools:layout="@layout/fragment_settings">
+        <action
+            android:id="@+id/action_settingsFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+    </fragment>
+
+    <!-- Maps Activity -->
     <activity
         android:id="@+id/mapsActivity"
         android:name="com.example.mapsapp.MapsActivity"
         android:label="activity_maps"
         tools:layout="@layout/activity_maps" />
 
+    <!-- ChatBot Activity -->
     <activity
         android:id="@+id/chatBotActivity"
         android:name="com.example.mapsapp.view.chatbot.ChatBotActivity"
         android:label="activity_chat_bot"
         tools:layout="@layout/activity_chat_bot" />
-    <fragment
-        android:id="@+id/addFriendsFragment"
-        android:name="com.example.mapsapp.view.ui.AddFriendsFragment"
-        android:label="fragment_add_friends"
-        tools:layout="@layout/fragment_add_friends" />
+
+    <!-- 🔹 GLOBAL NAVIGATION ACTIONS -->
+    <action
+        android:id="@+id/action_global_homeFragment"
+        app:destination="@id/homeFragment" />
+
+    <action
+        android:id="@+id/action_global_chatInterfaceFragment"
+        app:destination="@id/chatInterfaceFragment" />
+
+    <action
+        android:id="@+id/action_global_chatFragment"
+        app:destination="@id/chatFragment" />
+
+    <action
+        android:id="@+id/action_global_chatBotActivity"
+        app:destination="@id/chatBotActivity" />
+
+    <action
+        android:id="@+id/action_global_mapsActivity"
+        app:destination="@id/mapsActivity" />
+
+    <action
+        android:id="@+id/action_global_settingsFragment"
+        app:destination="@id/settingsFragment" />
 
 </navigation>

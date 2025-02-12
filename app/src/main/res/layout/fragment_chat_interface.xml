@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:paddingBottom="80dp"
     tools:context=".view.ui.ChatInterfaceFragment">
 
     <!-- Üst Toolbar -->
@@ -18,40 +19,51 @@
         app:title="Friends"
         app:titleTextColor="@android:color/white" />
 
-    <!-- Arkadaş Listesi -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/chat_interface_toolbar"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:padding="8dp" />
-
-    <!-- Requests Butonu -->
+    <!-- Requests Button -->
     <Button
         android:id="@+id/requestButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Requests"
         android:visibility="visible"
-        app:layout_constraintTop_toTopOf="@id/chat_interface_toolbar"
-        app:layout_constraintEnd_toEndOf="@id/chat_interface_toolbar"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        />
+        app:layout_constraintTop_toBottomOf="@id/chat_interface_toolbar"
+    app:layout_constraintEnd_toEndOf="parent"
+    android:layout_marginTop="8dp"
+    android:layout_marginEnd="8dp" />
 
+    <!-- RecyclerView for Friend List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/requestButton"
+    app:layout_constraintBottom_toTopOf="@id/fabAddFriend"
+    android:padding="8dp" />
 
+    <!-- Add Friend FAB (Right Bottom Corner) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddFriend"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        app:srcCompat="@drawable/ic_add_friend"
-        android:contentDescription="Add Friend"
-        app:backgroundTint="@color/primary"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:layout_marginBottom="80dp"
+    app:srcCompat="@drawable/ic_add_friend"
+    android:contentDescription="Add Friend"
+    app:backgroundTint="@color/primary"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintEnd_toEndOf="parent" />
 
-
+    <!-- Chat FAB (Left Bottom Corner) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabChat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:layout_marginBottom="80dp"
+    app:srcCompat="@drawable/ic_chat"
+    android:contentDescription="Chat"
+    app:backgroundTint="@color/primary"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

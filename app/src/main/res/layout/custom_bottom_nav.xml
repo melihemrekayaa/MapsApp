@@ -6,16 +6,15 @@
     android:layout_height="80dp"
     android:background="@color/white"
     android:elevation="10dp"
-    android:padding="8dp">
+    android:padding="5dp">
 
-    <!-- Bottom Nav Container -->
     <LinearLayout
         android:id="@+id/bottomNavContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:orientation="horizontal"
-        android:weightSum="5"
+        android:gravity="center"
         android:paddingBottom="8dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
@@ -28,20 +27,22 @@
             android:gravity="center"
             android:clickable="true"
             android:focusable="true"
-            android:id="@+id/homeButton">
+            android:id="@+id/homeButton"
+            android:padding="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless">
 
             <ImageView
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:src="@drawable/ic_home"
-                app:tint="@color/black" />
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/home"
+                app:tint="@color/nav_item_color" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Home"
                 android:textSize="14sp"
-                android:textColor="@color/black"/>
+                android:textColor="@color/nav_item_color"/>
         </LinearLayout>
 
         <!-- Maps Button -->
@@ -53,29 +54,25 @@
             android:gravity="center"
             android:clickable="true"
             android:focusable="true"
-            android:id="@+id/mapsButton">
+            android:id="@+id/mapsButton"
+            android:padding="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless">
 
             <ImageView
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:src="@drawable/baseline_map_24"
-                app:tint="@color/black" />
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/maps"
+                app:tint="@color/nav_item_color" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Maps"
                 android:textSize="14sp"
-                android:textColor="@color/black"/>
+                android:textColor="@color/nav_item_color"/>
         </LinearLayout>
 
-        <!-- Boş Alan (FAB için) -->
-        <View
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"/>
-
-        <!-- Chat Bot Button -->
+        <!-- Chat Button (Floating) -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -84,23 +81,51 @@
             android:gravity="center"
             android:clickable="true"
             android:focusable="true"
-            android:id="@+id/chatBotButton">
+            android:id="@+id/chatButton"
+            android:padding="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless">
 
             <ImageView
-                android:layout_width="30dp"
-                android:layout_height="30dp"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/chat"
+                app:tint="@color/nav_item_color" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Chat"
+                android:textSize="14sp"
+                android:textColor="@color/nav_item_color"/>
+        </LinearLayout>
+        <!-- ChatBot Button -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:id="@+id/chatBotButton"
+            android:padding="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
                 android:src="@drawable/chatbot"
-                app:tint="@color/black" />
+                app:tint="@color/nav_item_color" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Bot"
                 android:textSize="14sp"
-                android:textColor="@color/black"/>
+                android:textColor="@color/nav_item_color"/>
         </LinearLayout>
 
-        <!-- Voice Call Button -->
+        <!-- Settings Button -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -109,35 +134,23 @@
             android:gravity="center"
             android:clickable="true"
             android:focusable="true"
-            android:id="@+id/voiceCallButton">
+            android:id="@+id/settingsButton"
+            android:padding="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless">
 
             <ImageView
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:src="@drawable/ic_call"
-                app:tint="@color/black" />
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/permissionx_ic_setting"
+                app:tint="@color/nav_item_color" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Voice"
+                android:text="Settings"
                 android:textSize="14sp"
-                android:textColor="@color/black"/>
+                android:textColor="@color/nav_item_color"/>
         </LinearLayout>
 
     </LinearLayout>
-
-    <!-- Ortada Duran FAB -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/chatButton"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        app:srcCompat="@drawable/ic_chat"
-        android:contentDescription="Chat"
-        app:backgroundTint="@color/primary"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavContainer"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="8dp"/>
-
 </androidx.constraintlayout.widget.ConstraintLayout>
