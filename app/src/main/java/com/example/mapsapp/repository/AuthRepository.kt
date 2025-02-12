@@ -10,6 +10,9 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -52,19 +55,20 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    fun login(email: String, password: String, onComplete: (FirebaseUser?,String?) -> Unit) {
-        auth.signInWithEmailAndPassword(email,password)
+    fun login(email: String, password: String, onComplete: (FirebaseUser?, String?) -> Unit) {
+        auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
-                if (task.isSuccessful){
+                if (task.isSuccessful) {
                     val user = auth.currentUser
-                    onComplete(user,null)
-                }
-                else {
-                    onComplete(null,task.exception?.message ?: "Login Failed")
+                    user?.let {
+                        setUserOnline(it.uid) // Set user as online after login
+                    }
+                    onComplete(user, null)
+                } else {
+                    onComplete(null, task.exception?.message ?: "Login Failed")
                 }
             }
     }
-
 
 
 
@@ -120,62 +124,87 @@ class AuthRepository @Inject constructor(
         }
     }
 
-
-    fun updateFirestoreUserStatus(status: String) {
-        val user = auth.currentUser ?: return
-        val userDocRef = firestore.collection(USERS_COLLECTION).document(user.uid)
-        userDocRef.update("status", status)
+    fun setUserOnline(userId: String) {
+        firestore.collection("users")
+            .document(userId)
+            .update("isOnline", true)
     }
 
-    fun setupUserPresence() {
-        val user = auth.currentUser ?: return
-        val userStatusDatabaseRef = FirebaseDatabase.getInstance()
-            .getReference("presence/${user.uid}")
+    fun setUserOffline(userId: String) {
+        firestore.collection("users")
+            .document(userId)
+            .update("isOnline", false)
+    }
 
-        val connectedRef = FirebaseDatabase.getInstance().getReference(".info/connected")
+    fun getFriendsList(userId: String): Flow<List<User>> = callbackFlow {
+        val userDocRef = firestore.collection("users").document(userId)
 
-        connectedRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
-                val connected = snapshot.getValue(Boolean::class.java) ?: false
-                if (connected) {
-                    userStatusDatabaseRef.setValue("ONLINE")
-                    userStatusDatabaseRef.onDisconnect().setValue("OFFLINE")
+        Log.d("AuthRepository", "Getting friends list for user: $userId")
+
+        val listener = userDocRef.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.e("AuthRepository", "Error fetching friends: ${error.message}")
+                close(error)
+                return@addSnapshotListener
+            }
+
+            if (snapshot != null && snapshot.exists()) {
+                val friendsList = snapshot.get("friends") as? List<String>
+                if (!friendsList.isNullOrEmpty()) {
+                    Log.d("AuthRepository", "Friend IDs found: $friendsList")
+
+                    val friends = mutableListOf<User>()
+
+                    // Fetch details of each friend
+                    for (friendId in friendsList) {
+                        firestore.collection("users").document(friendId)
+                            .get()
+                            .addOnSuccessListener { friendSnapshot ->
+                                if (friendSnapshot.exists()) {
+                                    val friend = friendSnapshot.toObject(User::class.java)
+                                    if (friend != null) {
+                                        friends.add(friend)
+                                        trySend(friends)
+                                        Log.d("AuthRepository", "Friend added: ${friend.name}")
+                                    }
+                                } else {
+                                    Log.w("AuthRepository", "Friend document missing: $friendId")
+                                }
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("AuthRepository", "Error fetching friend details: ${e.message}")
+                            }
+                    }
+                } else {
+                    Log.w("AuthRepository", "User $userId has no friends in Firestore.")
+                    trySend(emptyList())
                 }
             }
+        }
 
-            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
-                // Log or handle the error
-            }
-        })
+        awaitClose { listener.remove() }
     }
 
-    fun loadFriendRequests(userUid: String, onComplete: (List<User>) -> Unit) {
-        val friendRequestsRef = firestore.collection("users")
+
+
+
+    fun loadFriendRequests(userUid: String): Flow<List<User>> = callbackFlow {
+        val listener = firestore.collection("users")
             .document(userUid)
             .collection("friendRequests")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
 
-        friendRequestsRef.get()
-            .addOnSuccessListener { documents ->
-                val requests = mutableListOf<User>()
-                for (document in documents) {
-                    val fromUid = document.getString("from") ?: continue
-                    firestore.collection("users").document(fromUid).get()
-                        .addOnSuccessListener { userDocument ->
-                            val user = User(
-                                uid = fromUid,
-                                name = userDocument.getString("name") ?: "Unknown",
-                                photoUrl = userDocument.getString("photoUrl")
-                            )
-                            requests.add(user)
-                            if (requests.size == documents.size()) {
-                                onComplete(requests)
-                            }
-                        }
+                if (snapshot != null) {
+                    val requests = snapshot.toObjects(User::class.java)
+                    trySend(requests)
                 }
             }
-            .addOnFailureListener {
-                onComplete(emptyList()) // Hata varsa boş liste döndür
-            }
+
+        awaitClose { listener.remove() }
     }
 
 
@@ -183,19 +212,37 @@ class AuthRepository @Inject constructor(
         val currentUserRef = firestore.collection("users").document(currentUserUid)
         val friendRef = firestore.collection("users").document(friendUid)
 
-        firestore.runBatch { batch ->
-            // İsteği kabul eden kullanıcının arkadaş listesine ekle
-            batch.update(currentUserRef, "friends", FieldValue.arrayUnion(friendUid))
-            // Arkadaşın arkadaş listesine bu kullanıcıyı ekle
-            batch.update(friendRef, "friends", FieldValue.arrayUnion(currentUserUid))
-            // İsteği sil
-            batch.delete(currentUserRef.collection("friendRequests").document(friendUid))
+        firestore.runTransaction { transaction ->
+            // Fetch both users' documents
+            val currentUserDoc = transaction.get(currentUserRef)
+            val friendDoc = transaction.get(friendRef)
+
+            // Add friendUid to the current user's friends list
+            val currentUserFriends = currentUserDoc.get("friends") as? MutableList<String> ?: mutableListOf()
+            if (!currentUserFriends.contains(friendUid)) {
+                currentUserFriends.add(friendUid)
+                transaction.update(currentUserRef, "friends", currentUserFriends)
+            }
+
+            // Add currentUserUid to the friend's friends list
+            val friendFriends = friendDoc.get("friends") as? MutableList<String> ?: mutableListOf()
+            if (!friendFriends.contains(currentUserUid)) {
+                friendFriends.add(currentUserUid)
+                transaction.update(friendRef, "friends", friendFriends)
+            }
+
+            // Delete the friend request from the current user's requests
+            transaction.delete(currentUserRef.collection("friendRequests").document(friendUid))
         }.addOnCompleteListener { task ->
             onComplete(task.isSuccessful)
         }
     }
 
     fun logout() {
+        val user = getCurrentUser()
+        user?.let {
+            setUserOffline(it.uid) // Set user as offline before logging out
+        }
         auth.signOut()
     }
 }

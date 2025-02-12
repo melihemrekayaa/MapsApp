@@ -3,8 +3,6 @@ package com.example.mapsapp.view.ui
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,7 +11,6 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mapsapp.R
@@ -27,7 +24,6 @@ import com.example.mapsapp.webrtc.ui.CallActivity
 import com.example.mapsapp.webrtc.ui.WebRTCMainActivity
 import com.example.mapsapp.webrtc.utils.DataModel
 import com.example.mapsapp.webrtc.utils.DataModelType
-import com.example.mapsapp.webrtc.utils.getCameraAndMicPermission
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -73,10 +69,10 @@ class ChatFragment : BaseFragment(), MainService.Listener {
             }
         }
 
-        chatViewModel.messages.observe(viewLifecycleOwner, Observer { messages ->
+        chatViewModel.messages.observe(viewLifecycleOwner) { messages ->
             adapter.updateMessages(messages)
             binding.recyclerView.scrollToPosition(messages.size - 1)
-        })
+        }
 
         receiverId?.let { chatViewModel.listenForMessages(it) }
 
@@ -104,9 +100,9 @@ class ChatFragment : BaseFragment(), MainService.Listener {
         }
 
         receiverId?.let { id ->
-            chatViewModel.fetchUserName(id).observe(viewLifecycleOwner, Observer { userName ->
+            chatViewModel.fetchUserName(id).observe(viewLifecycleOwner) { userName ->
                 toolbar.title = userName ?: "User"
-            })
+            }
         }
 
         toolbar.setOnMenuItemClickListener { item ->
@@ -183,6 +179,7 @@ class ChatFragment : BaseFragment(), MainService.Listener {
         }
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -191,7 +188,7 @@ class ChatFragment : BaseFragment(), MainService.Listener {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                Companion.onPermissionGranted?.invoke()
+                onPermissionGranted?.invoke()
             } else {
                 Toast.makeText(requireContext(), "Permissions not granted by the user.", Toast.LENGTH_SHORT).show()
             }

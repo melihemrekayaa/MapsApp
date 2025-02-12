@@ -4,6 +4,9 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.widget.FrameLayout
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
+import com.example.mapsapp.R
 import com.example.mapsapp.databinding.CustomBottomNavBinding
 import com.example.mapsapp.util.NavigationHelper
 
@@ -14,22 +17,34 @@ class CustomBottomNavView @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     private val binding = CustomBottomNavBinding.inflate(LayoutInflater.from(context), this, true)
+    private var fragment: Fragment? = null  // Store fragment reference
 
-    fun setupNavigation(fragment: androidx.fragment.app.Fragment) {
+    fun setupNavigation(fragment: Fragment) {
+        this.fragment = fragment  // Save the reference for later use
+
         binding.homeButton.setOnClickListener {
-            NavigationHelper.navigateTo(fragment, "Home")
+            navigateIfNotOn(R.id.homeFragment, "Home")
         }
         binding.mapsButton.setOnClickListener {
-            NavigationHelper.navigateTo(fragment, "Maps")
+            navigateIfNotOn(R.id.mapsActivity, "Maps")
         }
         binding.chatButton.setOnClickListener {
-            NavigationHelper.navigateTo(fragment, "Chat")
+            navigateIfNotOn(R.id.chatInterfaceFragment, "Chat")
         }
         binding.chatBotButton.setOnClickListener {
-            NavigationHelper.navigateTo(fragment, "Chat Bot")
+            navigateIfNotOn(R.id.chatBotActivity, "Chat Bot")
         }
-        binding.voiceCallButton.setOnClickListener {
-            NavigationHelper.navigateTo(fragment, "Voice Call")
+        binding.settingsButton.setOnClickListener {
+            navigateIfNotOn(R.id.settingsFragment, "Settings")
+        }
+    }
+
+    private fun navigateIfNotOn(currentDestinationId: Int, destination: String) {
+        fragment?.let { frag ->
+            val navController = frag.findNavController()
+            if (navController.currentDestination?.id != currentDestinationId) {
+                NavigationHelper.navigateTo(frag, destination)
+            }
         }
     }
 }
