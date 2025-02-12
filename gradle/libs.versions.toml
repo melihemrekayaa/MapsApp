@@ -32,6 +32,7 @@ recyclerview = "1.3.2"
 retrofit = "2.11.0"
 swiperefreshlayout = "1.1.0"
 webrtc = "1.0.5"
+lifecycleProcess = "2.8.7"
 
 [libraries]
 androidx-constraintlayout-v220 = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayoutVersion" }
@@ -72,6 +73,7 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 webrtc = { module = "com.mesibo.api:webrtc", version.ref = "webrtc" }
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

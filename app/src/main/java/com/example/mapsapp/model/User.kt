@@ -6,6 +6,8 @@ data class User(
     val email: String = "",
     val photoUrl: String? = null,
     val friends: List<String> = listOf(), // UID listesi olmalı
-    val friendRequests: List<String> = listOf() // UID listesi olmalı
+    val friendRequests: List<String> = listOf(),
+    val isOnline: Boolean = false
+
 )
 

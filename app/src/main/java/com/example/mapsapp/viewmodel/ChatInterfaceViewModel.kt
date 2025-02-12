@@ -10,6 +10,7 @@ import com.example.mapsapp.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -18,44 +19,59 @@ class ChatInterfaceViewModel @Inject constructor(
     private val repository: AuthRepository
 ) : ViewModel() {
 
-    private val _friends = MutableStateFlow<List<User>>(emptyList())
-    val friends: StateFlow<List<User>> get() = _friends
+    private val _friendsList = MutableStateFlow<List<User>>(emptyList())
+    val friendsList: StateFlow<List<User>> = _friendsList.asStateFlow()
 
     private val _friendRequests = MutableStateFlow<List<User>>(emptyList())
-    val friendRequests: StateFlow<List<User>> get() = _friendRequests
+    val friendRequests: StateFlow<List<User>> = _friendRequests.asStateFlow()
 
-    private val _operationStatus = MutableLiveData<String?>()
-    val operationStatus: LiveData<String?> get() = _operationStatus
+    private val _operationStatus = MutableStateFlow<String?>(null)
+    val operationStatus: StateFlow<String?> = _operationStatus.asStateFlow()
 
-    fun loadFriends() {
+
+
+    fun fetchFriendsList(userId: String) {
         viewModelScope.launch {
-            try {
-                val loadedFriends = repository.loadFriends()
-                _friends.value = loadedFriends
-            } catch (e: Exception){
-                _friends.value = emptyList()
-            }
+            repository.getFriendsList(userId)
+                .collect { friends ->
+                    _friendsList.value = emptyList() // Clear first to force refresh
+                    _friendsList.value = friends // Now set the updated list
+                }
         }
     }
 
+
+
+
+
+
     fun loadFriendRequests(userUid: String) {
-        repository.loadFriendRequests(userUid) { requests ->
-            _friendRequests.value = requests
+        viewModelScope.launch {
+            repository.loadFriendRequests(userUid)
+                .collect { requests ->
+                    _friendRequests.value = requests
+                }
         }
     }
 
     fun acceptFriendRequest(currentUserUid: String, friendUid: String) {
-        repository.acceptFriendRequest(currentUserUid, friendUid) { success ->
-            if (success) {
-                _operationStatus.postValue("Arkadaşlık isteği kabul edildi.")
-                loadFriendRequests(currentUserUid) // Listeyi güncelle
-            } else {
-                _operationStatus.postValue("Bir hata oluştu.")
+        viewModelScope.launch {
+            try {
+                repository.acceptFriendRequest(currentUserUid, friendUid) { success ->
+                    if (success) {
+                        _operationStatus.value = "Friend request accepted."
+                        loadFriendRequests(currentUserUid) // Refresh the list
+                    } else {
+                        _operationStatus.value = "Error: Failed to accept friend request."
+                    }
+                }
+            } catch (e: Exception) {
+                _operationStatus.value = "Error: ${e.message}"
             }
         }
     }
 
     fun clearOperationStatus() {
-        _operationStatus.postValue(null)
+        _operationStatus.value = null
     }
 }

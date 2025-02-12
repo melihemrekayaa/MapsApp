@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mapsapp.model.User
 import com.example.mapsapp.repository.AuthRepository
 import com.example.mapsapp.util.SecurePreferences
 import com.google.firebase.auth.FirebaseUser
@@ -31,6 +32,9 @@ class AuthViewModel @Inject constructor(
 
     private val _isUserLoggedIn = MutableStateFlow(false)
     val isUserLoggedIn: StateFlow<Boolean> = _isUserLoggedIn.asStateFlow()
+
+
+
 
     // Ortak giriş/kayıt işlemleri için yardımcı metot
     private fun performAuthOperation(
@@ -91,6 +95,7 @@ class AuthViewModel @Inject constructor(
             login(email,password,staySignedIn)
         }
     }
+
 
 
 

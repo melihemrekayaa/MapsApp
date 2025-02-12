@@ -61,7 +61,7 @@ class HomeFragment : BaseFragment() {
 
         recyclerView.adapter = CardAdapter(DataProvider.getCardItems()) { cardItem ->
             if (cardItem.title == "Chat") {
-                NavigationHelper.navigateTo(this, "Chat", "receiver_user_id") // receiverId gönderiliyor
+                NavigationHelper.navigateTo(this, "Chat", "receiver_user_id")
             } else {
                 NavigationHelper.navigateTo(this, cardItem.title)
             }

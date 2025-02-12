@@ -1,47 +1,81 @@
 package com.example.mapsapp.adapter
 
+import android.util.Log
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.example.mapsapp.R
 import com.example.mapsapp.databinding.ItemFriendBinding
 import com.example.mapsapp.model.User
 
 class FriendsAdapter(
-    friends: List<User>, // Immutable List kullanılıyor
-    private val onItemClick: (User) -> Unit // Kullanıcıyı seçmek için lambda
-) : RecyclerView.Adapter<FriendsAdapter.FriendsViewHolder>() {
+    private val onFriendClick: (User) -> Unit
+) : ListAdapter<User, FriendsAdapter.FriendViewHolder>(DiffCallback) {
 
-    private val friendList = friends.toMutableList() // MutableList'e dönüştürme
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FriendViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_friend, parent, false)
+        return FriendViewHolder(view)
+    }
 
-    inner class FriendsViewHolder(private val binding: ItemFriendBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(user: User) {
-            // Kullanıcı adını göster
-            binding.friendName.text = user.name
+    override fun onBindViewHolder(holder: FriendViewHolder, position: Int) {
+        val friend = getItem(position)
+        Log.d("FriendsAdapter", "Binding friend: ${friend.name}")
+        holder.bind(friend)
+    }
 
-            // Profil resmi kullanmayacağımız için Glide kısmını kaldırdık
 
-            // Seçilen arkadaş için onClickListener
-            binding.root.setOnClickListener {
-                onItemClick(user) // Seçilen kullanıcıyı geri döndür
+    inner class FriendViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val friendName: TextView = itemView.findViewById(R.id.friendName)
+        private val friendProfilePic: ImageView = itemView.findViewById(R.id.friendProfilePic)
+        private val friendStatusIcon: ImageView = itemView.findViewById(R.id.friendStatusIcon)
+
+        fun bind(friend: User) {
+            Log.d("FriendsAdapter", "Binding friend: ${friend.name}")
+
+            friendName.text = friend.name
+
+            if (friend.photoUrl != null) {
+                Glide.with(itemView.context)
+                    .load(friend.photoUrl)
+                    .into(friendProfilePic)
+            } else {
+                friendProfilePic.setImageResource(R.drawable.baseline_account_circle_24)
+            }
+
+            // Update the online/offline status
+            updateStatusIndicator(friend.isOnline)
+        }
+
+        private fun updateStatusIndicator(isOnline: Boolean) {
+            Log.d("FriendsAdapter", "Updating status icon for ${friendName.text}: $isOnline")
+
+            friendStatusIcon.setImageResource(
+                if (isOnline) R.drawable.circle_green else R.drawable.circle_red
+            )
+        }
+
+
+
+    }
+
+
+
+    companion object {
+        private val DiffCallback = object : DiffUtil.ItemCallback<User>() {
+            override fun areItemsTheSame(oldItem: User, newItem: User): Boolean {
+                return oldItem.uid == newItem.uid
+            }
+
+            override fun areContentsTheSame(oldItem: User, newItem: User): Boolean {
+                return oldItem == newItem
             }
         }
-    }
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FriendsViewHolder {
-        val binding = ItemFriendBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return FriendsViewHolder(binding)
-    }
-
-    override fun onBindViewHolder(holder: FriendsViewHolder, position: Int) {
-        holder.bind(friendList[position])
-    }
-
-    override fun getItemCount(): Int = friendList.size
-
-    // Arkadaş listesini güncelle
-    fun updateFriends(newFriends: List<User>) {
-        friendList.clear()
-        friendList.addAll(newFriends)
-        notifyDataSetChanged()
     }
 }
