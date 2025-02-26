@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="16dp">
-
+    android:padding="16dp"
+    android:gravity="center_vertical">
 
     <FrameLayout
         android:layout_width="48dp"
         android:layout_height="48dp">
-
 
         <ImageView
             android:id="@+id/friendProfilePic"
@@ -18,7 +18,7 @@
             android:scaleType="centerCrop"
             android:background="@drawable/circle_shape" />
 
-        <!-- Durum Göstergesi (Sağ Alt Köşe) -->
+        <!-- Online/Offline Durum Göstergesi -->
         <ImageView
             android:id="@+id/friendStatusIcon"
             android:layout_width="12dp"
@@ -30,15 +30,25 @@
             android:contentDescription="Friend Status" />
     </FrameLayout>
 
-
+    <!-- Arkadaş İsmi -->
     <TextView
         android:id="@+id/friendName"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Friend Name"
         android:textSize="16sp"
         android:textColor="@android:color/black"
-        android:layout_gravity="center_vertical"
-        android:layout_marginStart="16dp" />
+        android:layout_marginStart="16dp"
+        android:layout_weight="1"/>
 
+    <!-- Silme Tuşu (X Kırmızı) -->
+    <ImageButton
+        android:id="@+id/removeFriendButton"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="4dp"
+        android:scaleType="fitCenter"
+        android:contentDescription="Remove Friend"
+        android:src="@drawable/ic_close_red" />
 </LinearLayout>

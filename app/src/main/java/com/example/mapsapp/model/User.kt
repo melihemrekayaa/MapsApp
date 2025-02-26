@@ -7,7 +7,8 @@ data class User(
     val photoUrl: String? = null,
     val friends: List<String> = listOf(), // UID listesi olmalı
     val friendRequests: List<String> = listOf(),
-    val isOnline: Boolean = false
+    val isOnline: Boolean = false,
+    val from : String = ""
 
 )
 
