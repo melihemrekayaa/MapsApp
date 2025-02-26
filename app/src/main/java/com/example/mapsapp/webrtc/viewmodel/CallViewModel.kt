@@ -3,31 +3,41 @@ package com.example.mapsapp.webrtc.viewmodel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.example.mapsapp.webrtc.firebaseClient.FirebaseClient
 import com.example.mapsapp.webrtc.repository.MainRepository
 import com.example.mapsapp.webrtc.utils.DataModel
 import com.example.mapsapp.webrtc.utils.isValid
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
-import org.webrtc.SurfaceViewRenderer
 import javax.inject.Inject
 
 @HiltViewModel
 class CallViewModel @Inject constructor(
     private val mainRepository: MainRepository
-) : ViewModel(), MainRepository.Listener {
+) : ViewModel(), FirebaseClient.Listener {
 
-    private val _incomingCall = MutableLiveData<DataModel>()
-    val incomingCall: LiveData<DataModel> get() = _incomingCall
+    private val _incomingCall = MutableLiveData<DataModel?>()
+    val incomingCall: LiveData<DataModel?> get() = _incomingCall
+
+    private val _usersStatus = MutableLiveData<List<Pair<String, String>>>()
+    val usersStatus: LiveData<List<Pair<String, String>>> get() = _usersStatus
 
     private var listener: CallListener? = null
 
     init {
-        mainRepository.listener = this
-        mainRepository.initFirebase()
+        mainRepository.subscribeForLatestEvent(this)
+        observeUsersStatus()
     }
 
     fun setCallListener(listener: CallListener) {
         this.listener = listener
+    }
+
+    fun observeUsersStatus() {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        mainRepository.observeUsersStatus(currentUserId) { statusList ->
+            _usersStatus.postValue(statusList)
+        }
     }
 
     fun observeIncomingCalls(onCallReceived: (String, String) -> Unit) {
@@ -35,44 +45,19 @@ class CallViewModel @Inject constructor(
         mainRepository.observeIncomingCalls(currentUserId, onCallReceived)
     }
 
-    fun observeUsersStatus(currentUserId: String, status: (List<Pair<String, String>>) -> Unit) {
-        mainRepository.observeUsersStatus(currentUserId, status)
-    }
-
-    fun sendConnectionRequest(target: String, isVideoCall: Boolean, success: (Boolean) -> Unit) {
-        mainRepository.sendConnectionRequest(target, isVideoCall, success)
-    }
-
-    fun startService(username: String) {
-        mainRepository.initWebrtcClient(username)
-    }
-
-    fun setupViews(isVideoCall: Boolean, isCaller: Boolean, target: String) {
-        mainRepository.setTarget(target)
-        mainRepository.initLocalSurfaceView(localSurfaceView!!, isVideoCall)
-        mainRepository.initRemoteSurfaceView(remoteSurfaceView!!)
-        if (!isCaller) {
-            mainRepository.startCall()
-        }
+    fun placeCall(caller: String, callee: String, callId: String, callback: (Boolean) -> Unit) {
+        mainRepository.placeCall(caller, callee, callId, callback)
     }
 
     fun answerCall(callId: String) {
         mainRepository.answerCall(callId)
     }
 
-
-    fun switchCamera() {
-        mainRepository.switchCamera()
+    fun endCall(callId: String) {
+        mainRepository.endCall(callId)
+        _incomingCall.postValue(null)
+        listener?.onCallEnded()
     }
-
-    fun toggleAudio(shouldBeMuted: Boolean) {
-        mainRepository.toggleAudio(shouldBeMuted)
-    }
-
-    fun toggleVideo(shouldBeMuted: Boolean) {
-        mainRepository.toggleVideo(shouldBeMuted)
-    }
-
 
     override fun onLatestEventReceived(data: DataModel) {
         if (data.isValid()) {
@@ -81,17 +66,8 @@ class CallViewModel @Inject constructor(
         }
     }
 
-    override fun endCall() {
-        listener?.onCallEnded()
-    }
-
     interface CallListener {
         fun onCallReceived(model: DataModel)
         fun onCallEnded()
-    }
-
-    companion object {
-        var localSurfaceView: SurfaceViewRenderer? = null
-        var remoteSurfaceView: SurfaceViewRenderer? = null
     }
 }

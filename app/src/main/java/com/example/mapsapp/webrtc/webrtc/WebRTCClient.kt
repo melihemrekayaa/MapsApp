@@ -35,10 +35,11 @@ class WebRTCClient @Inject constructor(
     private val localAudioSource by lazy { peerConnectionFactory.createAudioSource(MediaConstraints()) }
     private val videoCapturer = getVideoCapturer(context)
     private var surfaceTextureHelper: SurfaceTextureHelper? = null
-    private val mediaConstraint = MediaConstraints().apply {
+    private val mediaConstraints = MediaConstraints().apply {
         mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
         mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
     }
+
 
     // call variables
     private lateinit var localSurfaceView: SurfaceViewRenderer
@@ -92,44 +93,35 @@ class WebRTCClient @Inject constructor(
 
     // negotiation section
     fun call(target: String) {
-        peerConnection?.createOffer(object : MySdpObserver() {
-            override fun onCreateSuccess(desc: SessionDescription?) {
-                super.onCreateSuccess(desc)
-                peerConnection?.setLocalDescription(object : MySdpObserver() {
-                    override fun onSetSuccess() {
-                        super.onSetSuccess()
-                        listener?.onTransferEventToSocket(
-                            DataModel(type = DataModelType.Offer,
-                                sender = username,
-                                target = target,
-                                data = desc?.description)
-                        )
-                        Log.d("WebRTCClient", "Offer created and sent to socket")
-                    }
-                }, desc)
-            }
-        }, mediaConstraint)
+        peerConnection?.createOffer(MySdpObserver { desc ->
+            peerConnection?.setLocalDescription(MySdpObserver(), desc)
+            listener?.onTransferEventToSocket(
+                DataModel(
+                    type = DataModelType.Offer,
+                    sender = username,
+                    target = target,
+                    data = desc.description
+                )
+            )
+            Log.d("WebRTCClient", "Offer created and sent to socket")
+        }, mediaConstraints)
     }
 
     fun answer(target: String) {
-        peerConnection?.createAnswer(object : MySdpObserver() {
-            override fun onCreateSuccess(desc: SessionDescription?) {
-                super.onCreateSuccess(desc)
-                peerConnection?.setLocalDescription(object : MySdpObserver() {
-                    override fun onSetSuccess() {
-                        super.onSetSuccess()
-                        listener?.onTransferEventToSocket(
-                            DataModel(type = DataModelType.Answer,
-                                sender = username,
-                                target = target,
-                                data = desc?.description)
-                        )
-                        Log.d("WebRTCClient", "Answer created and sent to socket")
-                    }
-                }, desc)
-            }
-        }, mediaConstraint)
+        peerConnection?.createAnswer(MySdpObserver { desc ->
+            peerConnection?.setLocalDescription(MySdpObserver(), desc)
+            listener?.onTransferEventToSocket(
+                DataModel(
+                    type = DataModelType.Answer,
+                    sender = username,
+                    target = target,
+                    data = desc.description
+                )
+            )
+            Log.d("WebRTCClient", "Answer created and sent to socket")
+        }, mediaConstraints)
     }
+
 
     fun onRemoteSessionReceived(sessionDescription: SessionDescription) {
         peerConnection?.setRemoteDescription(MySdpObserver(), sessionDescription)

@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.mapsapp.R
 import com.example.mapsapp.webrtc.repository.MainRepository
+import com.example.mapsapp.webrtc.ui.CallActivity
 import com.example.mapsapp.webrtc.utils.DataModel
 import com.example.mapsapp.webrtc.utils.DataModelType
 import com.example.mapsapp.webrtc.utils.isValid
@@ -161,11 +162,58 @@ class MainService : Service(), MainRepository.Listener {
                 DataModelType.StartVideoCall,
                 DataModelType.StartAudioCall -> {
                     listener?.onCallReceived(data)
+
+                    // Gelen çağrıyı bildirim olarak göster
+                    showIncomingCallNotification(data)
                 }
                 else -> Unit
             }
         }
     }
+
+    private fun showIncomingCallNotification(data: DataModel) {
+        val callType = if (data.type == DataModelType.StartVideoCall) "Video" else "Audio"
+
+        // Çağrıya yanıt vermek için "Kabul Et" Intent'i
+        val acceptIntent = Intent(this, CallActivity::class.java).apply {
+            putExtra("callerId", data.sender)
+            putExtra("callType", data.type.name)
+            action = "ACCEPT_CALL"
+        }
+        val acceptPendingIntent = PendingIntent.getActivity(this, 0, acceptIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+        // Çağrıyı reddetmek için Broadcast Receiver
+        val rejectIntent = Intent(this, MainServiceReceiver::class.java).apply {
+            action = "REJECT_CALL"
+            putExtra("callerId", data.sender)
+        }
+        val rejectPendingIntent = PendingIntent.getBroadcast(this, 1, rejectIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+
+        // Android 8.0+ için bildirim kanalı oluştur
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "incoming_call", "Incoming Calls", NotificationManager.IMPORTANCE_HIGH
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val notification = NotificationCompat.Builder(this, "incoming_call")
+            .setSmallIcon(R.drawable.ic_call)
+            .setContentTitle("Incoming $callType Call")
+            .setContentText("Call from ${data.sender}")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_CALL)
+            .setAutoCancel(true)
+            .addAction(R.drawable.accept_call, "Accept", acceptPendingIntent)
+            .addAction(R.drawable.reject_call, "Reject", rejectPendingIntent)
+            .build()
+
+        notificationManager.notify(1001, notification)
+    }
+
+
 
     override fun endCall() {
         endCallAndRestartRepository()

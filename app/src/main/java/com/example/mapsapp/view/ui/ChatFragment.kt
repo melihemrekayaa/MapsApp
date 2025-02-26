@@ -41,6 +41,8 @@ class ChatFragment : BaseFragment(), MainService.Listener {
     private val chatViewModel: ChatViewModel by viewModels()
     private lateinit var adapter: ChatAdapter
     private var receiverId: String? = null
+    private var receiverName: String? = null
+
 
     @Inject
     lateinit var mainRepository: MainRepository
@@ -52,18 +54,10 @@ class ChatFragment : BaseFragment(), MainService.Listener {
         _binding = FragmentChatBinding.inflate(inflater, container, false)
         auth = FirebaseAuth.getInstance()
 
-        // Argumentten receiverId'yi alın
         receiverId = arguments?.getString("receiverId")
-
-        if (receiverId == null) {
-            Toast.makeText(requireContext(), "User not found!", Toast.LENGTH_SHORT).show()
-            findNavController().navigateUp() // Eğer ID yoksa geri git
-        } else {
-            fetchReceiverInfo(receiverId!!)
-        }
+        receiverName = arguments?.getString("receiverName")
 
         init()
-        setupToolbar()
 
         adapter = ChatAdapter(chatViewModel.messages.value ?: emptyList(), auth.currentUser?.uid ?: "")
         binding.recyclerView.adapter = adapter
@@ -78,9 +72,15 @@ class ChatFragment : BaseFragment(), MainService.Listener {
             }
         }
 
+        val progressBar = binding.loadingIndicator
+        progressBar.visibility = View.VISIBLE
+
         chatViewModel.messages.observe(viewLifecycleOwner) { messages ->
             adapter.updateMessages(messages)
             binding.recyclerView.scrollToPosition(messages.size - 1)
+
+            progressBar.visibility = View.GONE
+            setupToolbar()
         }
 
         receiverId?.let { chatViewModel.listenForMessages(it) }
@@ -101,15 +101,17 @@ class ChatFragment : BaseFragment(), MainService.Listener {
     private fun setupToolbar() {
         val toolbar = binding.chatToolbar
         toolbar.setNavigationIcon(R.drawable.ic_arrow_back)
+        toolbar.navigationIcon?.setTint(resources.getColor(R.color.white))
+        toolbar.title = receiverName ?: "User"
         toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
         }
 
-        receiverId?.let { id ->
+       /* receiverId?.let { id ->
             chatViewModel.fetchUserName(id).observe(viewLifecycleOwner) { userName ->
                 toolbar.title = userName ?: "User"
             }
-        }
+        }*/
 
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -126,19 +128,7 @@ class ChatFragment : BaseFragment(), MainService.Listener {
         }
     }
 
-    private fun fetchReceiverInfo(receiverId: String) {
-        val firestore = FirebaseFirestore.getInstance()
-        firestore.collection("users").document(receiverId).get()
-            .addOnSuccessListener { document ->
-                if (document.exists()) {
-                    val user = document.toObject(User::class.java)
-                    binding.chatToolbar.title = user?.name ?: "Unknown"
-                }
-            }
-            .addOnFailureListener {
-                Toast.makeText(requireContext(), "Failed to fetch user info", Toast.LENGTH_SHORT).show()
-            }
-    }
+
 
     override fun onDestroyView() {
         super.onDestroyView()

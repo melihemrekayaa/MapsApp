@@ -1,39 +1,63 @@
 package com.example.mapsapp.webrtc.webrtc
 
+import android.util.Log
 import org.webrtc.*
 
 open class MyPeerObserver : PeerConnection.Observer {
-    override fun onSignalingChange(p0: PeerConnection.SignalingState?) {
 
+    private val TAG = "MyPeerObserver"
+
+    override fun onSignalingChange(state: PeerConnection.SignalingState?) {
+        Log.d(TAG, "Signaling state changed: $state")
     }
 
-    override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {
+    override fun onIceConnectionChange(state: PeerConnection.IceConnectionState?) {
+        Log.d(TAG, "ICE connection state changed: $state")
     }
 
-    override fun onIceConnectionReceivingChange(p0: Boolean) {
+    override fun onIceConnectionReceivingChange(receiving: Boolean) {
+        Log.d(TAG, "ICE connection receiving change: $receiving")
     }
 
-    override fun onIceGatheringChange(p0: PeerConnection.IceGatheringState?) {
+    override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) {
+        Log.d(TAG, "ICE gathering state changed: $state")
     }
 
-    override fun onIceCandidate(p0: IceCandidate?) {
+    override fun onIceCandidate(candidate: IceCandidate?) {
+        candidate?.let {
+            Log.d(TAG, "New ICE candidate: ${it.sdp}")
+            // Burada ICE adaylarını sinyalleme sunucusuna gönderebilirsin
+        }
     }
 
-    override fun onIceCandidatesRemoved(p0: Array<out IceCandidate>?) {
+    override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>?) {
+        candidates?.let {
+            Log.d(TAG, "ICE candidates removed")
+        }
     }
 
-    override fun onAddStream(p0: MediaStream?) {
+    override fun onAddStream(mediaStream: MediaStream?) {
+        mediaStream?.let {
+            Log.d(TAG, "New media stream added: ${it.videoTracks.size} video tracks, ${it.audioTracks.size} audio tracks")
+        }
     }
 
-    override fun onRemoveStream(p0: MediaStream?) {
+    override fun onRemoveStream(mediaStream: MediaStream?) {
+        Log.d(TAG, "Media stream removed")
     }
 
-    override fun onDataChannel(p0: DataChannel?) {
+    override fun onDataChannel(dataChannel: DataChannel?) {
+        dataChannel?.let {
+            Log.d(TAG, "Data channel opened: ${it.label()}")
+        }
     }
 
     override fun onRenegotiationNeeded() {
+        Log.d(TAG, "Renegotiation needed")
+        // Bağlantı değişiklikleri olduğunda yeniden görüşme başlatabilirsin
     }
 
-    override fun onAddTrack(p0: RtpReceiver?, p1: Array<out MediaStream>?) {
+    override fun onAddTrack(receiver: RtpReceiver?, mediaStreams: Array<out MediaStream>?) {
+        Log.d(TAG, "New track added to media stream")
     }
 }

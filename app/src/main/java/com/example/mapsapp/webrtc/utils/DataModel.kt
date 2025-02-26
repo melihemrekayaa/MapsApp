@@ -1,18 +1,17 @@
 package com.example.mapsapp.webrtc.utils
 
 enum class DataModelType {
-    StartAudioCall,StartVideoCall,Offer,Answer,IceCandidates,EndCall
+    StartAudioCall, StartVideoCall, Offer, Answer, IceCandidates, EndCall
 }
+
 data class DataModel(
-    val sender:String?=null,
-    val target:String,
+    val sender: String? = null,
+    val target: String,
     val type: DataModelType,
-    val data:String?=null,
+    val data: String? = null,
     val eventType: String = "",
-    val timeStamp:Long = System.currentTimeMillis()
-)
+    val timeStamp: Long = System.currentTimeMillis()
+) {
 
-
-fun DataModel.isValid(): Boolean {
-    return System.currentTimeMillis() - this.timeStamp < 60000
+    fun isValid(): Boolean = System.currentTimeMillis() - this.timeStamp < 60_000
 }

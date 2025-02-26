@@ -65,7 +65,7 @@ class ChatViewModel @Inject constructor(
     fun fetchUserName(userId: String): LiveData<String?> {
         firestore.collection("users").document(userId).get()
             .addOnSuccessListener { document ->
-                _userName.value = document.getString("email")?.split("@")?.get(0)
+                _userName.value = document.getString("name")
             }
             .addOnFailureListener {
                 _userName.value = null

@@ -5,16 +5,19 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 
-open class MyEventListener : ValueEventListener {
-    private val TAG = "MyEventListener"
+
+class MyEventListener(
+    private val onDataChanged: (DataSnapshot) -> Unit = {},
+    private val onError: (DatabaseError) -> Unit = {}
+) : ValueEventListener {
 
     override fun onDataChange(snapshot: DataSnapshot) {
-        Log.d(TAG, "Data changed: ${snapshot.value}")
-        // Veri değişikliklerini işlemek için buraya kod ekleyebilirsiniz
+        Log.d("MyEventListener", "Data changed: ${snapshot.value}")
+        onDataChanged(snapshot)
     }
 
     override fun onCancelled(error: DatabaseError) {
-        Log.e(TAG, "Database error: ${error.message}")
-        // Hataları işlemek için buraya kod ekleyebilirsiniz
+        Log.e("MyEventListener", "Database error: ${error.message}")
+        onError(error)
     }
 }

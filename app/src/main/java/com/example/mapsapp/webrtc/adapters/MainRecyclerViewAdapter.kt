@@ -7,14 +7,16 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.ItemMainRecyclerViewBinding
+import com.example.mapsapp.webrtc.utils.UserStatus
 
-class MainRecyclerViewAdapter(private val listener: Listener) : RecyclerView.Adapter<MainRecyclerViewAdapter.MainRecyclerViewHolder>() {
+class MainRecyclerViewAdapter(private val listener: Listener) :
+    RecyclerView.Adapter<MainRecyclerViewAdapter.MainRecyclerViewHolder>() {
 
+    private var usersList: MutableList<Pair<String, String>> = mutableListOf()
 
-    private var usersList: List<Pair<String, String>>? = null
-
-    fun updateList(list: List<Pair<String, String>>) {
-        this.usersList = list
+    fun updateList(newList: List<Pair<String, String>>) {
+        usersList.clear()
+        usersList.addAll(newList)
         notifyDataSetChanged()
     }
 
@@ -25,18 +27,22 @@ class MainRecyclerViewAdapter(private val listener: Listener) : RecyclerView.Ada
         return MainRecyclerViewHolder(binding)
     }
 
-    override fun getItemCount(): Int {
-        return usersList?.size ?: 0
-    }
+    override fun getItemCount(): Int = usersList.size
 
     override fun onBindViewHolder(holder: MainRecyclerViewHolder, position: Int) {
-        usersList?.let { list ->
-            val user = list[position]
-            holder.bind(user, {
-                listener.onVideoCallClicked(it)
-            }, {
-                listener.onAudioCallClicked(it)
-            })
+        val user = usersList[position]
+        holder.bind(user, {
+            listener.onVideoCallClicked(it)
+        }, {
+            listener.onAudioCallClicked(it)
+        })
+    }
+
+    fun updateUserStatus(username: String, status: String) {
+        val index = usersList.indexOfFirst { it.first == username }
+        if (index != -1) {
+            usersList[index] = username to status
+            notifyItemChanged(index)
         }
     }
 
@@ -55,34 +61,29 @@ class MainRecyclerViewAdapter(private val listener: Listener) : RecyclerView.Ada
             audioCallClicked: (String) -> Unit
         ) {
             binding.apply {
+                usernameTv.text = user.first
                 when (user.second) {
-                    "ONLINE" -> {
+                    UserStatus.ONLINE.name -> {
                         videoCallBtn.isVisible = true
                         audioCallBtn.isVisible = true
-                        videoCallBtn.setOnClickListener {
-                            videoCallClicked.invoke(user.first)
-                        }
-                        audioCallBtn.setOnClickListener {
-                            audioCallClicked.invoke(user.first)
-                        }
-                        statusTv.setTextColor(context.resources.getColor(R.color.light_green, null))
+                        videoCallBtn.setOnClickListener { videoCallClicked.invoke(user.first) }
+                        audioCallBtn.setOnClickListener { audioCallClicked.invoke(user.first) }
+                        statusTv.setTextColor(context.getColor(R.color.light_green))
                         statusTv.text = "Online"
                     }
-                    "OFFLINE" -> {
+                    UserStatus.OFFLINE.name -> {
                         videoCallBtn.isVisible = false
                         audioCallBtn.isVisible = false
-                        statusTv.setTextColor(context.resources.getColor(R.color.red, null))
+                        statusTv.setTextColor(context.getColor(R.color.red))
                         statusTv.text = "Offline"
                     }
-                    "IN_CALL" -> {
+                    UserStatus.IN_CALL.name -> {
                         videoCallBtn.isVisible = false
                         audioCallBtn.isVisible = false
-                        statusTv.setTextColor(context.resources.getColor(R.color.yellow, null))
+                        statusTv.setTextColor(context.getColor(R.color.yellow))
                         statusTv.text = "In Call"
                     }
                 }
-
-                usernameTv.text = user.first
             }
         }
     }

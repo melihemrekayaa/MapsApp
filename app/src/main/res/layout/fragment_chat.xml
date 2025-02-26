@@ -6,6 +6,16 @@
     android:layout_height="match_parent"
     tools:context=".view.ui.ChatFragment">
 
+    <ProgressBar
+        android:id="@+id/loadingIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
     <!-- Toolbar -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/chat_toolbar"
@@ -14,8 +24,9 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:background="@color/white"
+        android:background="@color/primary"
         app:titleTextColor="@android:color/white"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
         app:menu="@menu/chat_toolbar_menu" />
 
     <!-- Gelen Arama Ekranı -->
