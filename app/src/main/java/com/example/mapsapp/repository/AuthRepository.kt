@@ -139,7 +139,7 @@ class AuthRepository @Inject constructor(
     fun getFriendsList(userId: String): Flow<List<User>> = callbackFlow {
         val userDocRef = firestore.collection("users").document(userId)
 
-        Log.d("AuthRepository", "Getting friends list for user: $userId")
+        Log.d("AuthRepository", "Fetching friends list for user: $userId")
 
         val listener = userDocRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
@@ -149,41 +149,36 @@ class AuthRepository @Inject constructor(
             }
 
             if (snapshot != null && snapshot.exists()) {
-                val friendsList = snapshot.get("friends") as? List<String>
-                if (!friendsList.isNullOrEmpty()) {
-                    Log.d("AuthRepository", "Friend IDs found: $friendsList")
+                val friendsList = snapshot.get("friends") as? List<String> ?: emptyList()
 
+                if (friendsList.isEmpty()) {
+                    Log.w("AuthRepository", "No friends found for user: $userId")
+                    trySend(emptyList())
+                } else {
                     val friends = mutableListOf<User>()
 
-                    // Fetch details of each friend
-                    for (friendId in friendsList) {
+                    // Firestore'dan her arkadaşın bilgilerini çekiyoruz
+                    friendsList.forEach { friendId ->
                         firestore.collection("users").document(friendId)
                             .get()
                             .addOnSuccessListener { friendSnapshot ->
-                                if (friendSnapshot.exists()) {
-                                    val friend = friendSnapshot.toObject(User::class.java)
-                                    if (friend != null) {
-                                        friends.add(friend)
-                                        trySend(friends)
-                                        Log.d("AuthRepository", "Friend added: ${friend.name}")
-                                    }
-                                } else {
-                                    Log.w("AuthRepository", "Friend document missing: $friendId")
+                                friendSnapshot.toObject(User::class.java)?.let { friend ->
+                                    friends.add(friend)
+                                    trySend(friends.toList()) // Güncellenmiş listeyi gönder
+                                    Log.d("AuthRepository", "Friend added: ${friend.name}")
                                 }
                             }
                             .addOnFailureListener { e ->
                                 Log.e("AuthRepository", "Error fetching friend details: ${e.message}")
                             }
                     }
-                } else {
-                    Log.w("AuthRepository", "User $userId has no friends in Firestore.")
-                    trySend(emptyList())
                 }
             }
         }
 
         awaitClose { listener.remove() }
     }
+
 
 
 
@@ -199,13 +194,27 @@ class AuthRepository @Inject constructor(
                 }
 
                 if (snapshot != null) {
-                    val requests = snapshot.toObjects(User::class.java)
+                    val requests = snapshot.documents.mapNotNull { doc ->
+                        val senderUid = doc.getString("from") ?: return@mapNotNull null
+                        firestore.collection("users").document(senderUid)
+                            .get()
+                            .addOnSuccessListener { senderSnapshot ->
+                                if (senderSnapshot.exists()) {
+                                    val user = senderSnapshot.toObject(User::class.java)
+                                    if (user != null) {
+                                        trySend(listOf(user)) // Güncellenen listeyi gönder
+                                    }
+                                }
+                            }
+                        null
+                    }
                     trySend(requests)
                 }
             }
 
         awaitClose { listener.remove() }
     }
+
 
 
     fun acceptFriendRequest(currentUserUid: String, friendUid: String, onComplete: (Boolean) -> Unit) {
@@ -237,6 +246,46 @@ class AuthRepository @Inject constructor(
             onComplete(task.isSuccessful)
         }
     }
+
+    suspend fun removeFriend(currentUserId: String, friendId: String): Boolean {
+        return try {
+            val userRef = firestore.collection("users").document(currentUserId)
+            val friendRef = firestore.collection("users").document(friendId)
+
+            firestore.runTransaction { transaction ->
+                val currentUserDoc = transaction.get(userRef)
+                val friendDoc = transaction.get(friendRef)
+
+                val currentUserFriends = currentUserDoc.get("friends") as? MutableList<String> ?: mutableListOf()
+                val friendFriends = friendDoc.get("friends") as? MutableList<String> ?: mutableListOf()
+
+                currentUserFriends.remove(friendId)
+                friendFriends.remove(currentUserId)
+
+                transaction.update(userRef, "friends", currentUserFriends)
+                transaction.update(friendRef, "friends", friendFriends)
+            }.await()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun removeFriendRequest(userUid: String, friendUid: String) {
+        firestore.collection("users")
+            .document(userUid)
+            .collection("friendRequests")
+            .document(friendUid)
+            .delete()
+            .addOnSuccessListener {
+                Log.d("AuthRepository", "Friend request from $friendUid removed for $userUid")
+            }
+            .addOnFailureListener { e ->
+                Log.e("AuthRepository", "Failed to remove friend request: ${e.message}")
+            }
+    }
+
+
 
     fun logout() {
         val user = getCurrentUser()

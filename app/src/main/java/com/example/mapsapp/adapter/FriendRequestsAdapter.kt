@@ -1,11 +1,14 @@
 package com.example.mapsapp.adapter
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.ItemFriendRequestBinding
 import com.example.mapsapp.model.User
@@ -15,11 +18,6 @@ class FriendRequestsAdapter(
     private val onAcceptClick: (User) -> Unit
 ) : RecyclerView.Adapter<FriendRequestsAdapter.FriendRequestViewHolder>() {
 
-    fun updateRequests(newRequests: List<User>) {
-        requests = newRequests
-        notifyDataSetChanged()
-    }
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FriendRequestViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_friend_request, parent, false)
@@ -27,22 +25,35 @@ class FriendRequestsAdapter(
     }
 
     override fun onBindViewHolder(holder: FriendRequestViewHolder, position: Int) {
-        val request = requests[position]
-        holder.bind(request)
+        val friendRequest = requests[position]
+        holder.bind(friendRequest)
     }
 
     override fun getItemCount(): Int = requests.size
 
     inner class FriendRequestViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val friendName: TextView = itemView.findViewById(R.id.friendName)
-        private val acceptButton: Button = itemView.findViewById(R.id.acceptButton)
+        private val friendName: TextView = itemView.findViewById(R.id.friendRequestName)
+        private val acceptButton: ImageButton = itemView.findViewById(R.id.acceptFriendRequestButton)
+        private val profilePic: ImageView = itemView.findViewById(R.id.friendRequestProfilePic)
 
-        fun bind(request: User) {
-            friendName.text = request.name
+        fun bind(friend: User) {
+            friendName.text = friend.name.ifEmpty { "Unknown" } // İsmi boşsa "Unknown" yaz
+            Log.d("FriendRequestsAdapter", "Displaying: ${friend.name}")
+
+            Glide.with(itemView.context)
+                .load(friend.photoUrl ?: R.drawable.baseline_account_circle_24)
+                .into(profilePic)
 
             acceptButton.setOnClickListener {
-                onAcceptClick(request)
+                Log.d("FriendRequestsAdapter", "Accepting request from: ${friend.uid}")
+                onAcceptClick(friend)
             }
         }
     }
+
+    fun updateRequests(newRequests: List<User>) {
+        requests = newRequests
+        notifyDataSetChanged()
+    }
 }
+

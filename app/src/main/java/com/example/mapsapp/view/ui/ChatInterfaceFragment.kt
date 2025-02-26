@@ -1,5 +1,6 @@
 package com.example.mapsapp.view.ui
 
+import android.app.AlertDialog
 import android.app.Dialog
 import android.os.Bundle
 import android.util.Log
@@ -28,6 +29,7 @@ import com.example.mapsapp.databinding.DialogFriendRequestsBinding
 import com.example.mapsapp.model.User
 import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatInterfaceViewModel
+import com.example.mapsapp.webrtc.utils.DataModel
 import com.google.android.material.badge.BadgeDrawable
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -45,11 +47,14 @@ class ChatInterfaceFragment : BaseFragment() {
     private lateinit var friendsAdapter: FriendsAdapter
     private lateinit var friendRequestsAdapter: FriendRequestsAdapter
 
+    private lateinit var dialog : Dialog
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentChatInterfaceBinding.inflate(inflater, container, false)
+        dialog = Dialog(requireContext(), R.style.CustomDialogTheme)
         return binding.root
     }
 
@@ -72,11 +77,20 @@ class ChatInterfaceFragment : BaseFragment() {
     private fun setupRecyclerView() {
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
-        friendsAdapter = FriendsAdapter { friend ->
-            navigateToChat(friend)
-        }
+        friendsAdapter = FriendsAdapter(
+            onFriendClick = { friend -> navigateToChat(friend)},
+            onRemoveClick = { friend -> showRemoveFriendDialog(friend) }
+
+        )
         binding.recyclerView.adapter = friendsAdapter
     }
+
+    private fun navigateToChat(friend: User) {
+        val action = ChatInterfaceFragmentDirections.actionChatInterfaceFragmentToChatFragment(friend.uid)
+        findNavController().navigate(action)
+    }
+
+
 
     private fun setupFabButton() {
         binding.fabAddFriend.setOnClickListener {
@@ -94,17 +108,31 @@ class ChatInterfaceFragment : BaseFragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    chatInterfaceViewModel.friendsList.collect { friends ->
-                        Log.d("ChatInterfaceFragment", "Friends list received: ${friends.size} friends")
-
-                        if (friends.isEmpty()) {
-                            Log.w("ChatInterfaceFragment", "Friends list is empty. RecyclerView may not update.")
-                        } else {
-                            Log.d("ChatInterfaceFragment", "Updating RecyclerView with friends: $friends")
-                        }
-
+                    chatInterfaceViewModel.friendsList.collectLatest { friends ->
                         friendsAdapter.submitList(friends)
-                        friendsAdapter.notifyDataSetChanged() // Force RecyclerView update
+                        Log.d("ChatInterfaceFragment", "Updated Friends List: ${friends.map { it.name }}")
+                    }
+                }
+
+                launch {
+                    chatInterfaceViewModel.friendRequests.collectLatest { requests ->
+                        if (::friendRequestsAdapter.isInitialized) {
+                            friendRequestsAdapter.updateRequests(requests)
+
+                            if (requests.isEmpty()) {
+                                dialog.dismiss() // Liste boşsa dialogu kapat
+                            }
+                        }
+                        Log.d("ChatInterfaceFragment", "Updated Friend Requests: ${requests.map { it.name }}")
+                    }
+                }
+
+                launch {
+                    chatInterfaceViewModel.operationStatus.collectLatest { status ->
+                        status?.let {
+                            showToast(it)
+                            chatInterfaceViewModel.clearOperationStatus()
+                        }
                     }
                 }
             }
@@ -112,13 +140,10 @@ class ChatInterfaceFragment : BaseFragment() {
     }
 
 
-    private fun navigateToChat(friend: User) {
-        val action = ChatInterfaceFragmentDirections.actionChatInterfaceFragmentToChatFragment(friend.uid)
-        findNavController().navigate(action)
-    }
+
+
 
     private fun showFriendRequestsDialog() {
-        val dialog = Dialog(requireContext(), R.style.CustomDialogTheme)
         val bindingSheet = DialogFriendRequestsBinding.inflate(layoutInflater)
         dialog.setContentView(bindingSheet.root)
 
@@ -126,6 +151,9 @@ class ChatInterfaceFragment : BaseFragment() {
             val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
             if (currentUserId != null) {
                 chatInterfaceViewModel.acceptFriendRequest(currentUserId, user.uid)
+                chatInterfaceViewModel.removeFriendRequest(currentUserId, user.uid) // UI'den de kaldır
+                chatInterfaceViewModel.removeFriendRequest(user.uid, currentUserId) // Karşı taraftan da kaldır
+                dialog.dismiss()
             }
         }
 
@@ -137,6 +165,35 @@ class ChatInterfaceFragment : BaseFragment() {
         dialog.show()
     }
 
+
+
+
+
+    private fun showRemoveFriendDialog(friend: User) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Remove Friend")
+            .setMessage("Are you sure you want to remove ${friend.name}?")
+            .setPositiveButton("Yes") { dialog, _ ->
+                chatInterfaceViewModel.removeFriend(FirebaseAuth.getInstance().currentUser?.uid ?: "", friend.uid)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun removeFriend(friend: User) {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        chatInterfaceViewModel.removeFriend(currentUserId, friend.uid)
+
+        // Silme işlemi sonrası listeyi güncelle
+        chatInterfaceViewModel.fetchFriendsList(currentUserId)
+        showToast("${friend.name} removed from your friends list")
+    }
+
+
+
     private fun showToast(message: String) {
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
     }
@@ -145,4 +202,7 @@ class ChatInterfaceFragment : BaseFragment() {
         super.onDestroyView()
         _binding = null
     }
+
+
 }
+

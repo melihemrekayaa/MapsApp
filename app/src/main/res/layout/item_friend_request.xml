@@ -1,40 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     app:cardCornerRadius="8dp"
-    app:cardElevation="4dp">
+    app:cardElevation="4dp"
+    android:layout_margin="8dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="12dp">
+        android:padding="16dp"
+        android:gravity="center_vertical">
 
-        <!-- Kullanıcı Adı -->
+        <!-- Profil Resmi -->
+        <ImageButton
+            android:id="@+id/friendRequestProfilePic"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/baseline_account_circle_24" />
+
+        <!-- Arkadaşın İsmi -->
         <TextView
-            android:id="@+id/userName"
-            android:layout_width="0dp"
+            android:id="@+id/friendRequestName"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="Friend Name"
             android:layout_weight="1"
-            android:text="User Name"
             android:textSize="16sp"
             android:textColor="@android:color/black"
-            android:layout_gravity="center_vertical" />
+            android:paddingStart="12dp"
+            android:layout_gravity="center_vertical"/>
+
 
         <!-- Kabul Et Butonu -->
         <ImageButton
-            android:id="@+id/acceptButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackground"
+            android:id="@+id/acceptFriendRequestButton"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_check"
             android:contentDescription="Accept Friend Request"
-            android:padding="8dp"
-            app:srcCompat="@drawable/ic_check"
-            app:tint="@color/primary" />
-
+            android:background="?attr/selectableItemBackground" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>

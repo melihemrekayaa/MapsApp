@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mapsapp.R
 import com.example.mapsapp.adapter.ChatAdapter
 import com.example.mapsapp.databinding.FragmentChatBinding
+import com.example.mapsapp.model.User
 import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatViewModel
 import com.example.mapsapp.webrtc.repository.MainRepository
@@ -25,6 +26,7 @@ import com.example.mapsapp.webrtc.ui.WebRTCMainActivity
 import com.example.mapsapp.webrtc.utils.DataModel
 import com.example.mapsapp.webrtc.utils.DataModelType
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,6 +54,13 @@ class ChatFragment : BaseFragment(), MainService.Listener {
 
         // Argumentten receiverId'yi alın
         receiverId = arguments?.getString("receiverId")
+
+        if (receiverId == null) {
+            Toast.makeText(requireContext(), "User not found!", Toast.LENGTH_SHORT).show()
+            findNavController().navigateUp() // Eğer ID yoksa geri git
+        } else {
+            fetchReceiverInfo(receiverId!!)
+        }
 
         init()
         setupToolbar()
@@ -82,13 +91,10 @@ class ChatFragment : BaseFragment(), MainService.Listener {
     }
 
     private fun init() {
-        // 1. Kullanıcı durumlarını gözlemleyin
         subscribeObservers()
-        // Diğer gerekli başlangıç işlemleri
     }
 
     private fun subscribeObservers() {
-        // Diğer kullanıcıları gözlemleme işlemleri
         MainService.listener = this
     }
 
@@ -118,6 +124,20 @@ class ChatFragment : BaseFragment(), MainService.Listener {
                 else -> false
             }
         }
+    }
+
+    private fun fetchReceiverInfo(receiverId: String) {
+        val firestore = FirebaseFirestore.getInstance()
+        firestore.collection("users").document(receiverId).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val user = document.toObject(User::class.java)
+                    binding.chatToolbar.title = user?.name ?: "Unknown"
+                }
+            }
+            .addOnFailureListener {
+                Toast.makeText(requireContext(), "Failed to fetch user info", Toast.LENGTH_SHORT).show()
+            }
     }
 
     override fun onDestroyView() {
@@ -218,7 +238,7 @@ class ChatFragment : BaseFragment(), MainService.Listener {
                             putExtra("target", model.sender)
                             putExtra("isVideoCall", isVideoCall)
                             putExtra("isCaller", false)
-                            putExtra("username", "username")  // username'i geçiriyoruz
+                            putExtra("username", "username")
                         })
                     }
                 }
