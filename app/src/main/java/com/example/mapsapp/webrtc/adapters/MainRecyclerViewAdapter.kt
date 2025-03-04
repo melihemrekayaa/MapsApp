@@ -9,82 +9,85 @@ import com.example.mapsapp.R
 import com.example.mapsapp.databinding.ItemMainRecyclerViewBinding
 import com.example.mapsapp.webrtc.utils.UserStatus
 
-class MainRecyclerViewAdapter(private val listener: Listener) :
-    RecyclerView.Adapter<MainRecyclerViewAdapter.MainRecyclerViewHolder>() {
+class MainRecyclerViewAdapter(private val listener:Listener) : RecyclerView.Adapter<MainRecyclerViewAdapter.MainRecyclerViewHolder>() {
 
-    private var usersList: MutableList<Pair<String, String>> = mutableListOf()
-
-    fun updateList(newList: List<Pair<String, String>>) {
-        usersList.clear()
-        usersList.addAll(newList)
+    private var usersList:List<Pair<String,String>>?=null
+    fun updateList(list:List<Pair<String,String>>){
+        this.usersList = list
         notifyDataSetChanged()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MainRecyclerViewHolder {
         val binding = ItemMainRecyclerViewBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
+            LayoutInflater.from(parent.context),parent,false
         )
         return MainRecyclerViewHolder(binding)
     }
 
-    override fun getItemCount(): Int = usersList.size
-
-    override fun onBindViewHolder(holder: MainRecyclerViewHolder, position: Int) {
-        val user = usersList[position]
-        holder.bind(user, {
-            listener.onVideoCallClicked(it)
-        }, {
-            listener.onAudioCallClicked(it)
-        })
+    override fun getItemCount(): Int {
+        return usersList?.size?:0
     }
 
-    fun updateUserStatus(username: String, status: String) {
-        val index = usersList.indexOfFirst { it.first == username }
-        if (index != -1) {
-            usersList[index] = username to status
-            notifyItemChanged(index)
+    override fun onBindViewHolder(holder: MainRecyclerViewHolder, position: Int) {
+        usersList?.let { list->
+            val user = list[position]
+            holder.bind(user,{
+                listener.onVideoCallClicked(it)
+            },{
+                listener.onAudioCallClicked(it)
+            })
         }
     }
 
-    interface Listener {
-        fun onVideoCallClicked(username: String)
-        fun onAudioCallClicked(username: String)
+    interface  Listener {
+        fun onVideoCallClicked(username:String)
+        fun onAudioCallClicked(username:String)
     }
 
-    class MainRecyclerViewHolder(private val binding: ItemMainRecyclerViewBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+
+
+    class MainRecyclerViewHolder(private val binding: ItemMainRecyclerViewBinding):
+        RecyclerView.ViewHolder(binding.root){
         private val context = binding.root.context
 
         fun bind(
-            user: Pair<String, String>,
-            videoCallClicked: (String) -> Unit,
-            audioCallClicked: (String) -> Unit
-        ) {
+            user:Pair<String,String>,
+            videoCallClicked:(String) -> Unit,
+            audioCallClicked:(String)-> Unit
+        ){
             binding.apply {
-                usernameTv.text = user.first
                 when (user.second) {
-                    UserStatus.ONLINE.name -> {
+                    "ONLINE" -> {
                         videoCallBtn.isVisible = true
                         audioCallBtn.isVisible = true
-                        videoCallBtn.setOnClickListener { videoCallClicked.invoke(user.first) }
-                        audioCallBtn.setOnClickListener { audioCallClicked.invoke(user.first) }
-                        statusTv.setTextColor(context.getColor(R.color.light_green))
+                        videoCallBtn.setOnClickListener {
+                            videoCallClicked.invoke(user.first)
+                        }
+                        audioCallBtn.setOnClickListener {
+                            audioCallClicked.invoke(user.first)
+                        }
+                        statusTv.setTextColor(context.resources.getColor(R.color.light_green, null))
                         statusTv.text = "Online"
                     }
-                    UserStatus.OFFLINE.name -> {
+                    "OFFLINE" -> {
                         videoCallBtn.isVisible = false
                         audioCallBtn.isVisible = false
-                        statusTv.setTextColor(context.getColor(R.color.red))
+                        statusTv.setTextColor(context.resources.getColor(R.color.red, null))
                         statusTv.text = "Offline"
                     }
-                    UserStatus.IN_CALL.name -> {
+                    "IN_CALL" -> {
                         videoCallBtn.isVisible = false
                         audioCallBtn.isVisible = false
-                        statusTv.setTextColor(context.getColor(R.color.yellow))
+                        statusTv.setTextColor(context.resources.getColor(R.color.yellow, null))
                         statusTv.text = "In Call"
                     }
                 }
+
+                usernameTv.text = user.first
             }
         }
+
+
+
     }
 }

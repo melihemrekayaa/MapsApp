@@ -5,30 +5,21 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.example.mapsapp.webrtc.repository.MainRepository
+import com.example.mapsapp.webrtc.ui.CloseActivity
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainServiceReceiver : BroadcastReceiver() {
 
-    @Inject
-    lateinit var mainRepository: MainRepository
-
+    @Inject lateinit var serviceRepository: MainServiceRepository
     override fun onReceive(context: Context?, intent: Intent?) {
-        when (intent?.action) {
-            "REJECT_CALL" -> {
-                val callerId = intent.getStringExtra("callerId")
-                Log.d("MainServiceReceiver", "Call rejected from: $callerId")
+        if (intent?.action == "ACTION_EXIT"){
+            //we want to exit the whole application
+            serviceRepository.stopService()
+            context?.startActivity(Intent(context, CloseActivity::class.java))
 
-                // Firebase veya Signaling Server'a çağrının reddedildiğini bildir
-                callerId?.let {
-                    mainRepository.sendEndCall()
-                }
-
-                // Bildirimi kapat
-                val notificationManager = context?.getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
-                notificationManager?.cancel(1001)
-            }
         }
+
     }
 }

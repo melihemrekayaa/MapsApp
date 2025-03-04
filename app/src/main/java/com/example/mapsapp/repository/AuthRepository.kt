@@ -1,10 +1,12 @@
 package com.example.mapsapp.repository
 
 import android.util.Log
+import com.example.mapsapp.model.Event
 import com.example.mapsapp.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.gson.Gson
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -132,6 +134,7 @@ class AuthRepository @Inject constructor(
 
     fun getFriendsList(userId: String): Flow<List<User>> = callbackFlow {
         val userDocRef = firestore.collection("users").document(userId)
+        val gson = Gson() // Gson ile JSON dönüşümü yapacağız
 
         Log.d("AuthRepository", "Fetching friends list for user: $userId")
 
@@ -151,12 +154,35 @@ class AuthRepository @Inject constructor(
                 } else {
                     val friends = mutableListOf<User>()
 
-                    // Firestore'dan her arkadaşın bilgilerini çekiyoruz
                     friendsList.forEach { friendId ->
                         firestore.collection("users").document(friendId)
                             .get()
                             .addOnSuccessListener { friendSnapshot ->
-                                friendSnapshot.toObject(User::class.java)?.let { friend ->
+                                friendSnapshot.data?.let { friendData ->
+
+                                    // latestEvent'i JSON'dan Event nesnesine çeviriyoruz
+                                    val latestEventString = friendData["latestEvent"] as? String
+                                    val latestEvent = if (!latestEventString.isNullOrEmpty()) {
+                                        try {
+                                            gson.fromJson(latestEventString, Event::class.java)
+                                        } catch (ex: Exception) {
+                                            Log.e("AuthRepository", "latestEvent dönüşüm hatası!", ex)
+                                            Event() // Hata olursa boş nesne döndür
+                                        }
+                                    } else {
+                                        Event()
+                                    }
+
+                                    val friend = User(
+                                        email = friendData["email"] as? String ?: "",
+                                        friends = friendData["friends"] as? List<String> ?: emptyList(),
+                                        isOnline = friendData["isOnline"] as? Boolean ?: false,
+                                        latestEvent = latestEvent, // JSON'dan çevirdiğimiz nesne
+                                        name = friendData["name"] as? String ?: "",
+                                        photoUrl = friendData["photoUrl"] as? String,
+                                        uid = friendData["uid"] as? String ?: ""
+                                    )
+
                                     friends.add(friend)
                                     trySend(friends.toList()) // Güncellenmiş listeyi gönder
                                     Log.d("AuthRepository", "Friend added: ${friend.name}")
@@ -172,6 +198,7 @@ class AuthRepository @Inject constructor(
 
         awaitClose { listener.remove() }
     }
+
 
 
 

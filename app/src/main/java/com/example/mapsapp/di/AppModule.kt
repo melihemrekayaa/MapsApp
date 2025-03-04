@@ -33,15 +33,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideGson(): Gson {
-        return Gson()
-    }
+    fun provideGson(): Gson = Gson()
 
-    @Provides
-    @Singleton
-    fun provideFirebaseClient(firestore: FirebaseFirestore, gson: Gson): FirebaseClient {
-        return FirebaseClient(firestore, gson)
-    }
 
     @Provides
     @Singleton

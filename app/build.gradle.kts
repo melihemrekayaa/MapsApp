@@ -107,6 +107,9 @@ dependencies {
     implementation ("androidx.security:security-crypto:1.1.0-alpha06")
     implementation(libs.androidx.lifecycle.process)
 
+    implementation ("com.google.android.gms:play-services-auth:21.3.0")
+
+
 
     // Dependencies to test
     testImplementation(kotlin("test"))
