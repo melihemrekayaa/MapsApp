@@ -1,132 +1,123 @@
 package com.example.mapsapp.webrtc.firebaseClient
 
+import android.content.Intent
 import android.util.Log
+import androidx.core.content.ContentProviderCompat.requireContext
+import androidx.core.content.ContextCompat.startActivity
+import com.example.mapsapp.webrtc.ui.CallActivity
 import com.example.mapsapp.webrtc.utils.DataModel
+import com.example.mapsapp.webrtc.utils.DataModelType
 import com.example.mapsapp.webrtc.utils.FirebaseFieldNames.LATEST_EVENT
-import com.example.mapsapp.webrtc.utils.FirebaseFieldNames.PASSWORD
 import com.example.mapsapp.webrtc.utils.FirebaseFieldNames.STATUS
-import com.example.mapsapp.webrtc.utils.MyEventListener
 import com.example.mapsapp.webrtc.utils.UserStatus
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseReference
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.firestore
 import com.google.gson.Gson
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class FirebaseClient @Inject constructor(
-    private val dbRef: DatabaseReference,
-    private val gson:Gson
+    private val firestore: FirebaseFirestore,
+    private val gson: Gson
 ) {
 
-    private var currentUsername:String?=null
-    private fun setUsername(username: String){
-        this.currentUsername = username
+    private var currentUserId: String? = null
+
+    private fun setCurrentUserId(userId: String) {
+        this.currentUserId = userId
     }
 
-
-    fun login(username: String, password: String, done: (Boolean, String?) -> Unit) {
-        dbRef.addListenerForSingleValueEvent(object  : MyEventListener(){
-            override fun onDataChange(snapshot: DataSnapshot) {
-                //if the current user exists
-                if (snapshot.hasChild(username)){
-                    //user exists , its time to check the password
-                    val dbPassword = snapshot.child(username).child(PASSWORD).value
-                    if (password == dbPassword) {
-                        //password is correct and sign in
-                        dbRef.child(username).child(STATUS).setValue(UserStatus.ONLINE)
-                            .addOnCompleteListener {
-                                setUsername(username)
-                                done(true,null)
-                            }.addOnFailureListener {
-                                done(false,"${it.message}")
-                            }
-                    }else{
-                        //password is wrong, notify user
-                        done(false,"Password is wrong")
-                    }
-
-                }else{
-                    //user doesnt exist, register the user
-                    dbRef.child(username).child(PASSWORD).setValue(password).addOnCompleteListener {
-                        dbRef.child(username).child(STATUS).setValue(UserStatus.ONLINE)
-                            .addOnCompleteListener {
-                                setUsername(username)
-                                done(true,null)
-                            }.addOnFailureListener {
-                                done(false,it.message)
-                            }
-                    }.addOnFailureListener {
-                        done(false,it.message)
-                    }
-
-                }
-            }
-        })
-    }
-
-    fun observeUsersStatus(status: (List<Pair<String, String>>) -> Unit) {
-        dbRef.addValueEventListener(object : MyEventListener() {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val list = snapshot.children.filter { it.key !=currentUsername }.map {
-                    it.key!! to it.child(STATUS).value.toString()
-                }
-                status(list)
-            }
-        })
-    }
-
-    fun subscribeForLatestEvent(listener:Listener){
-        try {
-            dbRef.child(currentUsername!!).child(LATEST_EVENT).addValueEventListener(
-                object : MyEventListener() {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        super.onDataChange(snapshot)
-                        val event = try {
-                            gson.fromJson(snapshot.value.toString(),DataModel::class.java)
-                        }catch (e:Exception){
-                            e.printStackTrace()
-                            null
-                        }
-                        event?.let {
-                            listener.onLatestEventReceived(it)
-                        }
-                    }
-                }
-            )
-        }catch (e:Exception){
-            e.printStackTrace()
+    fun updateUserStatus(status: UserStatus) {
+        currentUserId?.let { userId ->
+            firestore.collection("users")
+                .document(userId)
+                .update(STATUS, status.name)
+                .addOnSuccessListener { Log.d("FirebaseClient", "User status updated: $status") }
+                .addOnFailureListener { e -> Log.e("FirebaseClient", "Failed to update status", e) }
         }
     }
 
-    fun sendMessageToOtherClient(message:DataModel, success:(Boolean) -> Unit){
-        val convertedMessage = gson.toJson(message.copy(sender = currentUsername))
-        dbRef.child(message.target).child(LATEST_EVENT).setValue(convertedMessage)
-            .addOnCompleteListener {
-                success(true)
-            }.addOnFailureListener {
-                success(false)
-            }
+    fun listenForLatestEvent(listener: Listener) {
+        currentUserId?.let { userId ->
+            firestore.collection("users")
+                .document(userId)
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        Log.e("FirebaseClient", "Error listening for latest event", e)
+                        return@addSnapshotListener
+                    }
+                    snapshot?.let {
+                        val latestEventData = it.getString(LATEST_EVENT)
+                        latestEventData?.let { json ->
+                            val event = gson.fromJson(json, DataModel::class.java)
+                            listener.onLatestEventReceived(event)
+                        }
+                    }
+                }
+        }
     }
 
-    fun changeMyStatus(status: UserStatus) {
-        dbRef.child(currentUsername!!).child(STATUS).setValue(status.name)
+    fun sendMessageToOtherClient(message: DataModel, success: (Boolean) -> Unit) {
+        val convertedMessage = gson.toJson(message.copy(sender = currentUserId))
+
+        message.target?.let { targetId ->
+            firestore.collection("users")
+                .document(targetId)
+                .update(LATEST_EVENT, convertedMessage)
+                .addOnSuccessListener { success(true) }
+                .addOnFailureListener { success(false) }
+        }
     }
 
     fun clearLatestEvent() {
-        dbRef.child(currentUsername!!).child(LATEST_EVENT).setValue(null)
+        currentUserId?.let { userId ->
+            firestore.collection("users")
+                .document(userId)
+                .update(LATEST_EVENT, null)
+        }
     }
 
-    fun logOff(function:()->Unit) {
-        dbRef.child(currentUsername!!).child(STATUS).setValue(UserStatus.OFFLINE)
-            .addOnCompleteListener { function() }
+    fun sendCallRequest(targetId: String, isVideoCall: Boolean, success: (Boolean) -> Unit) {
+        val callData = hashMapOf(
+            "sender" to currentUserId,
+            "target" to targetId,
+            "type" to if (isVideoCall) "StartVideoCall" else "StartAudioCall",
+            "timeStamp" to System.currentTimeMillis(),
+            "status" to "pending" // Çağrının kabul edilip edilmediğini takip edeceğiz
+        )
+
+        firestore.collection("calls").document(targetId)
+            .set(callData)
+            .addOnSuccessListener { success(true) }
+            .addOnFailureListener { success(false) }
     }
 
+
+
+    fun acceptCall(targetId: String) {
+        FirebaseFirestore.getInstance().collection("calls").document(targetId).update("status", "accepted")
+    }
+
+
+    fun rejectCall(targetId: String) {
+        FirebaseFirestore.getInstance().collection("calls").document(targetId).delete()
+    }
+
+
+
+    fun logOff(function: () -> Unit) {
+        currentUserId?.let { userId ->
+            firestore.collection("users")
+                .document(userId)
+                .update(STATUS, UserStatus.OFFLINE.name)
+                .addOnCompleteListener { function() }
+        }
+    }
 
     interface Listener {
-        fun onLatestEventReceived(event:DataModel)
+        fun onLatestEventReceived(event: DataModel)
     }
 }

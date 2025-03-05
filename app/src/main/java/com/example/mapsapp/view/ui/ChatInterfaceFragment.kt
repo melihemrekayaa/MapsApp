@@ -78,6 +78,7 @@ class ChatInterfaceFragment : BaseFragment() {
         val bundle = Bundle()
         bundle.putString("receiverId", friend.uid)
         bundle.putString("receiverName", friend.name)
+
         findNavController().navigate(R.id.action_chatInterfaceFragment_to_chatFragment,bundle)
     }
 

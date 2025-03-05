@@ -126,29 +126,6 @@
         android:label="activity_chat_bot"
         tools:layout="@layout/activity_chat_bot" />
 
-    <!-- 🔹 GLOBAL NAVIGATION ACTIONS -->
-    <action
-        android:id="@+id/action_global_homeFragment"
-        app:destination="@id/homeFragment" />
 
-    <action
-        android:id="@+id/action_global_chatInterfaceFragment"
-        app:destination="@id/chatInterfaceFragment" />
-
-    <action
-        android:id="@+id/action_global_chatFragment"
-        app:destination="@id/chatFragment" />
-
-    <action
-        android:id="@+id/action_global_chatBotActivity"
-        app:destination="@id/chatBotActivity" />
-
-    <action
-        android:id="@+id/action_global_mapsActivity"
-        app:destination="@id/mapsActivity" />
-
-    <action
-        android:id="@+id/action_global_settingsFragment"
-        app:destination="@id/settingsFragment" />
 
 </navigation>

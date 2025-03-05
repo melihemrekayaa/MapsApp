@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mapsapp.databinding.ActivityMainWebrtcBinding
+import com.example.mapsapp.view.ui.ChatFragment
 import com.example.mapsapp.webrtc.adapters.MainRecyclerViewAdapter
 import com.example.mapsapp.webrtc.repository.MainRepository
 import com.example.mapsapp.webrtc.service.MainService
@@ -28,8 +29,8 @@ import javax.inject.Inject
 
 
 @AndroidEntryPoint
-class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener, MainService.Listener {
-    private val TAG = "MainActivity"
+class WebRTCMainActivity : AppCompatActivity(), MainService.Listener {
+    private val TAG = "WebRTCMainActivity"
 
     private lateinit var views: ActivityMainWebrtcBinding
     private var username: String? = null
@@ -57,7 +58,6 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
     }
 
     private fun subscribeObservers() {
-        setupRecyclerView()
         MainService.listener = this
         mainRepository.observeUsersStatus {
             Log.d(TAG, "subscribeObservers: $it")
@@ -65,53 +65,13 @@ class WebRTCMainActivity : AppCompatActivity(), MainRecyclerViewAdapter.Listener
         }
     }
 
-    private fun setupRecyclerView() {
-        mainAdapter = MainRecyclerViewAdapter(this)
-        val layoutManager = LinearLayoutManager(this)
-        views.mainRecyclerView.apply {
-            setLayoutManager(layoutManager)
-            adapter = mainAdapter
-        }
-    }
+
 
     private fun startMyService() {
         mainServiceRepository.startService(username!!)
     }
 
-    override fun onVideoCallClicked(username: String) {
-        //check if permission of mic and camera is taken
-        getCameraAndMicPermission {
-            mainRepository.sendConnectionRequest(username, true) {
-                if (it){
-                    //we have to start video call
-                    //we wanna create an intent to move to call activity
-                    startActivity(Intent(this,CallActivity::class.java).apply {
-                        putExtra("target",username)
-                        putExtra("isVideoCall",true)
-                        putExtra("isCaller",true)
-                    })
 
-                }
-            }
-
-        }
-    }
-
-    override fun onAudioCallClicked(username: String) {
-        getCameraAndMicPermission {
-            mainRepository.sendConnectionRequest(username, false) {
-                if (it){
-                    //we have to start audio call
-                    //we wanna create an intent to move to call activity
-                    startActivity(Intent(this,CallActivity::class.java).apply {
-                        putExtra("target",username)
-                        putExtra("isVideoCall",false)
-                        putExtra("isCaller",true)
-                    })
-                }
-            }
-        }
-    }
 
     override fun onBackPressed() {
         super.onBackPressed()
