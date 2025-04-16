@@ -61,16 +61,19 @@ class FirebaseClient @Inject constructor(
     }
 
     fun sendMessageToOtherClient(message: DataModel, success: (Boolean) -> Unit) {
-        val convertedMessage = gson.toJson(message.copy(sender = currentUserId))
-
+        // currentUserId, login işleminden sonra set ediliyor
+        val messageWithSender = message.copy(sender = currentUserId)
+        // JSON string’e çevirip, ardından Map’e dönüştürüyoruz
+        val messageMap: Map<String, Any> = gson.fromJson(gson.toJson(messageWithSender), Map::class.java) as Map<String, Any>
         message.target?.let { targetId ->
             firestore.collection("users")
                 .document(targetId)
-                .update(LATEST_EVENT, convertedMessage)
+                .update(LATEST_EVENT, messageMap)
                 .addOnSuccessListener { success(true) }
                 .addOnFailureListener { success(false) }
         }
     }
+
 
     fun clearLatestEvent() {
         currentUserId?.let { userId ->

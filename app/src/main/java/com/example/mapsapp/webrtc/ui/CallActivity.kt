@@ -19,6 +19,7 @@ import com.example.mapsapp.webrtc.service.MainService
 import com.example.mapsapp.webrtc.service.MainServiceRepository
 import com.example.mapsapp.webrtc.utils.convertToHumanTime
 import com.example.mapsapp.webrtc.webrtc.RTCAudioManager
+import com.example.mapsapp.webrtc.webrtc.WebRTCClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.AndroidEntryPoint
@@ -34,6 +35,7 @@ class CallActivity : AppCompatActivity(), MainService.EndCallListener {
     private var isVideoCall: Boolean = true
     private var isCaller: Boolean = true
 
+
     private var isMicrophoneMuted = false
     private var isCameraMuted = false
     private var isSpeakerMode = true
@@ -47,6 +49,9 @@ class CallActivity : AppCompatActivity(), MainService.EndCallListener {
     @Inject
     lateinit var serviceRepository: MainServiceRepository
     private lateinit var requestScreenCaptureLauncher: ActivityResultLauncher<Intent>
+
+    @Inject
+    lateinit var webRTCClient: WebRTCClient
 
     private lateinit var views: ActivityCallBinding
 
@@ -268,8 +273,12 @@ class CallActivity : AppCompatActivity(), MainService.EndCallListener {
 
 
     private fun closeCall() {
-        peerConnection?.close()
-        peerConnection = null
+        if (peerConnection != null) {
+            peerConnection?.close()
+            peerConnection = null
+        }
+
+        webRTCClient.stopCameraCapture()
 
         val cameraExecutor = Executors.newSingleThreadExecutor()
         cameraExecutor.execute {
@@ -286,6 +295,7 @@ class CallActivity : AppCompatActivity(), MainService.EndCallListener {
             finish()
         }
     }
+
 
     override fun onDestroy() {
         super.onDestroy()

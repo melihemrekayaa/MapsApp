@@ -287,6 +287,16 @@ class WebRTCClient @Inject constructor(
 
     }
 
+    fun stopCameraCapture(){
+        surfaceTextureHelper?.handler?.post{
+            videoCapturer.stopCapture()
+            videoCapturer.dispose()
+            localVideoTrack?.removeSink(localSurfaceView)
+            localSurfaceView.clearImage()
+            localStream?.removeTrack(localVideoTrack)
+        }
+    }
+
     private fun createScreenCapturer():VideoCapturer {
         return ScreenCapturerAndroid(permissionIntent, object : MediaProjection.Callback() {
             override fun onStop() {
