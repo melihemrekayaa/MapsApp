@@ -29,67 +29,8 @@
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
         app:menu="@menu/chat_toolbar_menu" />
 
-    <!-- Gelen Arama Ekranı -->
-    <androidx.cardview.widget.CardView
-        android:id="@+id/incomingCallLayout"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        app:cardBackgroundColor="@color/white"
-        app:cardCornerRadius="16dp"
-        android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/chat_toolbar"
-        app:layout_constraintBottom_toTopOf="@id/recyclerView"
-        tools:visibility="visible">
 
 
-    <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:id="@+id/incomingCallTitleTv"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="Someone is calling you"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="@color/black" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:layout_marginTop="16dp">
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/acceptButton"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:backgroundTint="@color/light_green"
-                    android:text="Accept"
-                    android:textColor="@color/white"
-                    android:layout_marginEnd="8dp"
-                    />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/declineButton"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:backgroundTint="@color/red"
-                    android:text="Decline"
-                    android:textColor="@color/white" />
-            </LinearLayout>
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
 
     <!-- Mesaj Listeleme RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
@@ -99,7 +40,7 @@
         app:layout_constraintBottom_toTopOf="@+id/messageInputLayout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/incomingCallLayout" />
+        app:layout_constraintTop_toBottomOf="@+id/chat_toolbar" />
 
     <!-- Mesaj Yazma Bölümü -->
     <LinearLayout

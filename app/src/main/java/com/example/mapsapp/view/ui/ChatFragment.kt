@@ -19,11 +19,10 @@ import com.example.mapsapp.model.User
 import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatViewModel
 import com.example.mapsapp.webrtc.firebaseClient.FirebaseClient
+import com.example.mapsapp.webrtc.model.DataModel
 import com.example.mapsapp.webrtc.repository.MainRepository
 import com.example.mapsapp.webrtc.ui.CallActivity
-import com.example.mapsapp.webrtc.utils.DataModel
 import com.example.mapsapp.webrtc.utils.DataModelType
-import com.example.mapsapp.webrtc.utils.isValid
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -44,6 +43,8 @@ class ChatFragment : BaseFragment() {
     private var receiverName: String? = null
     private var userListener: ListenerRegistration? = null
     private lateinit var toolbar: androidx.appcompat.widget.Toolbar
+    private var callDialogShown = false
+
 
     @Inject
     lateinit var mainRepository: MainRepository
@@ -102,16 +103,19 @@ class ChatFragment : BaseFragment() {
 
                 val call = snapshot.toObject(DataModel::class.java) ?: return@addSnapshotListener
 
-                if (!call.isValid() || call.target != userId) return@addSnapshotListener
+                // Kullanıcı daha önce reddettiyse gösterme
+                if (!call.isValid() || call.target != userId || callDialogShown) return@addSnapshotListener
 
                 Log.d("ChatFragment", "📞 Gelen Çağrı Algılandı: $call")
 
-                // Eğer çağrı zaten varsa ve diyalog açılmamışsa aç
-                if (activity != null) {
+                // Ana ekran gerçekten hazırsa göster
+                if (activity != null && isResumed) {
+                    callDialogShown = true
                     showIncomingCallDialog(call)
                 }
             }
     }
+
 
 
 
@@ -122,14 +126,16 @@ class ChatFragment : BaseFragment() {
             .setMessage("You have an incoming ${call.type} from ${call.sender}")
             .setPositiveButton("Accept") { _, _ ->
                 firebaseClient.acceptCall(call.target!!)
-                startCallActivity(call) // Kabul edildiğinde CallActivity'yi başlat
+                startCallActivity(call)
             }
             .setNegativeButton("Reject") { _, _ ->
-                firebaseClient.rejectCall(call.target!!) // Çağrıyı reddet
+                firebaseClient.rejectCall(call.target!!)
+                rejectCall() // ← burada ID varsa
             }
             .setCancelable(false)
             .show()
     }
+
 
 
     private fun startCallActivity(call: DataModel) {
@@ -140,10 +146,6 @@ class ChatFragment : BaseFragment() {
         }
         startActivity(intent)
     }
-
-
-
-
 
     private fun initChatUI() {
         adapter = ChatAdapter(chatViewModel.messages.value ?: emptyList(), auth.currentUser?.uid ?: "")
@@ -210,6 +212,19 @@ class ChatFragment : BaseFragment() {
         }
     }
 
+    private fun rejectCall() {
+        val db = FirebaseFirestore.getInstance()
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        db.collection("calls").document(userId).delete().addOnSuccessListener {
+            Log.d("ChatFragment", "❌ Çağrı Firestore'dan silindi (Reddedildi)")
+        }.addOnFailureListener {
+            Log.e("ChatFragment", "🚨 Çağrı silinemedi: ${it.message}")
+        }
+    }
+
+
+
 
 
     private fun getCameraAndMicPermission(onPermissionGranted: () -> Unit) {
@@ -247,6 +262,11 @@ class ChatFragment : BaseFragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    override fun onResume() {
+        super.onResume()
+        callDialogShown = false
     }
 
     companion object {
