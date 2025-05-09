@@ -17,6 +17,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
 
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:name=".MainApplication"
         android:allowBackup="true"
@@ -26,7 +28,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MapsApp">
         <activity
-            android:name=".webrtc.ui.CallingActivity"
+            android:name=".webrtc.CallActivity"
             android:exported="false" />
         <!-- 📌 Başlangıç (Launcher) Aktivitesi -->
         <activity
@@ -38,28 +40,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity> <!-- 📌 WebRTC Arama Aktivitesi -->
+
         <activity
-            android:name=".webrtc.ui.WebRTCMainActivity"
-            android:exported="true" />
-        <activity
-            android:name=".webrtc.ui.CallActivity"
-            android:exported="true" />
-        <activity
-            android:name=".webrtc.ui.CloseActivity"
-            android:exported="true" /> <!-- 📌 WebRTC Servisi -->
-        <service
-            android:name=".webrtc.service.MainService"
-            android:exported="false"
-            android:foregroundServiceType="camera|microphone"
-            android:permission="android.permission.FOREGROUND_SERVICE" /> <!-- 📌 WebRTC Broadcast Receiver -->
-        <receiver
-            android:name=".webrtc.service.MainServiceReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="REJECT_CALL" />
-                <action android:name="ACCEPT_CALL" />
-            </intent-filter>
-        </receiver>
+            android:name=".webrtc.IncomingCallActivity"
+            android:launchMode="singleTop"
+            android:exported="false" />
+
+
     </application>
 
 </manifest>

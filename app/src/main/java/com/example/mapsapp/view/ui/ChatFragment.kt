@@ -14,20 +14,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mapsapp.R
 import com.example.mapsapp.adapter.ChatAdapter
 import com.example.mapsapp.databinding.FragmentChatBinding
-import com.example.mapsapp.model.Event
-import com.example.mapsapp.model.User
 import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatViewModel
-import com.example.mapsapp.webrtc.firebaseClient.FirebaseClient
-import com.example.mapsapp.webrtc.model.DataModel
-import com.example.mapsapp.webrtc.repository.MainRepository
-import com.example.mapsapp.webrtc.ui.CallActivity
-import com.example.mapsapp.webrtc.utils.DataModelType
+import com.example.mapsapp.webrtc.CallActivity
+import com.example.mapsapp.webrtc.FirebaseClient
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -41,16 +34,12 @@ class ChatFragment : BaseFragment() {
     private lateinit var adapter: ChatAdapter
     private var receiverId: String? = null
     private var receiverName: String? = null
-    private var userListener: ListenerRegistration? = null
+    @Inject
+    lateinit var firebaseClient: FirebaseClient
+
     private lateinit var toolbar: androidx.appcompat.widget.Toolbar
     private var callDialogShown = false
 
-
-    @Inject
-    lateinit var mainRepository: MainRepository
-
-    @Inject
-    lateinit var firebaseClient: FirebaseClient
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -90,61 +79,14 @@ class ChatFragment : BaseFragment() {
 
     override fun onStart() {
         super.onStart()
-        listenForIncomingCalls()
-    }
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-    private fun listenForIncomingCalls() {
-        val db = FirebaseFirestore.getInstance()
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
-        db.collection("calls").document(userId)
-            .addSnapshotListener { snapshot, e ->
-                if (e != null || snapshot == null || !snapshot.exists()) return@addSnapshotListener
-
-                val call = snapshot.toObject(DataModel::class.java) ?: return@addSnapshotListener
-
-                // Kullanıcı daha önce reddettiyse gösterme
-                if (!call.isValid() || call.target != userId || callDialogShown) return@addSnapshotListener
-
-                Log.d("ChatFragment", "📞 Gelen Çağrı Algılandı: $call")
-
-                // Ana ekran gerçekten hazırsa göster
-                if (activity != null && isResumed) {
-                    callDialogShown = true
-                    showIncomingCallDialog(call)
-                }
+        chatViewModel.listenForIncomingCalls(currentUserId) { roomId, callerUid, isVideoCall ->
+            if (!callDialogShown) {
+                callDialogShown = true
+                showIncomingCallDialog(roomId, callerUid, isVideoCall)
             }
-    }
-
-
-
-
-
-    private fun showIncomingCallDialog(call: DataModel) {
-        AlertDialog.Builder(requireContext())
-            .setTitle("Incoming Call")
-            .setMessage("You have an incoming ${call.type} from ${call.sender}")
-            .setPositiveButton("Accept") { _, _ ->
-                firebaseClient.acceptCall(call.target!!)
-                startCallActivity(call)
-            }
-            .setNegativeButton("Reject") { _, _ ->
-                firebaseClient.rejectCall(call.target!!)
-                rejectCall() // ← burada ID varsa
-            }
-            .setCancelable(false)
-            .show()
-    }
-
-
-
-    private fun startCallActivity(call: DataModel) {
-        val intent = Intent(context, CallActivity::class.java).apply {
-            putExtra("target", call.sender)
-            putExtra("isVideoCall", call.type == DataModelType.StartVideoCall) // ✅ Hata düzeltildi
-            putExtra("isCaller", false) // Karşı taraf çağrıyı kabul ettiği için false
         }
-        startActivity(intent)
     }
 
     private fun initChatUI() {
@@ -185,44 +127,62 @@ class ChatFragment : BaseFragment() {
     private fun startCall(isVideoCall: Boolean) {
         getCameraAndMicPermission {
             receiverId?.let { receiverId ->
-                val senderId = auth.currentUser?.uid ?: ""
-                val senderName = auth.currentUser?.email?.substringBefore("@") ?: ""
+                val roomId = "room_${System.currentTimeMillis()}"
+                val senderUid = FirebaseAuth.getInstance().currentUser?.uid ?: return@let
 
-                // 📌 Log: Çağrının kime yapıldığını kontrol et
-                Log.d("ChatFragment", "📞 Çağrı başlatılıyor. Receiver ID: $receiverId | Sender ID: $senderId")
-
-                mainRepository.sendConnectionRequest(receiverId, isVideoCall) { success ->
+                chatViewModel.sendCallRequest(receiverId, isVideoCall, roomId, requireContext()) { success ->
                     if (success) {
-                        Log.d("ChatFragment", "✅ Çağrı isteği başarıyla gönderildi.")
+                        firebaseClient.listenForCallStatus(roomId) { status ->
+                            when (status) {
+                                "rejected" -> {
+                                    Toast.makeText(requireContext(), "Çağrı reddedildi", Toast.LENGTH_SHORT).show()
+                                }
+                                "accepted" -> {
+                                    // opsiyonel: kabul ekranı gösterilebilir
+                                }
+                            }
+                        }
 
-                        startActivity(Intent(context, CallActivity::class.java).apply {
-                            putExtra("target", receiverId)
-                            putExtra("isVideoCall", isVideoCall)
-                            putExtra("isCaller", true)
-                            putExtra("username", senderName)
-                        })
+                        if (!CallActivity.isActive) {
+                            val intent = Intent(requireContext(), CallActivity::class.java).apply {
+                                putExtra("roomId", roomId)
+                                putExtra("isCaller", true)
+                                putExtra("callerUid", senderUid)
+                                putExtra("isVideoCall", true)
+                            }
+                            startActivity(intent)
+                        }
+
                     } else {
-                        Log.e("ChatFragment", "🚨 Çağrı isteği başarısız oldu.")
-                        Toast.makeText(context, "Çağrı başlatılamadı", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "Çağrı gönderilemedi", Toast.LENGTH_SHORT).show()
                     }
                 }
-            } ?: run {
-                Log.e("ChatFragment", "❌ Receiver ID bulunamadı. Çağrı başlatılamadı.")
             }
         }
     }
 
-    private fun rejectCall() {
-        val db = FirebaseFirestore.getInstance()
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        db.collection("calls").document(userId).delete().addOnSuccessListener {
-            Log.d("ChatFragment", "❌ Çağrı Firestore'dan silindi (Reddedildi)")
-        }.addOnFailureListener {
-            Log.e("ChatFragment", "🚨 Çağrı silinemedi: ${it.message}")
-        }
+
+
+    private fun showIncomingCallDialog(roomId: String, callerUid: String, isVideoCall: Boolean) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Incoming ${if (isVideoCall) "Video" else "Voice"} Call")
+            .setMessage("User $callerUid is calling you.")
+            .setPositiveButton("Accept") { _, _ ->
+                val intent = Intent(requireContext(), CallActivity::class.java).apply {
+                    putExtra("roomId", roomId)
+                    putExtra("callerUid", callerUid)
+                    putExtra("isVideoCall", isVideoCall)
+                    putExtra("isCaller", false)
+                }
+                startActivity(intent)
+            }
+            .setNegativeButton("Reject") { _, _ ->
+                firebaseClient.rejectCall(roomId)
+            }
+            .setCancelable(false)
+            .show()
     }
-
 
 
 

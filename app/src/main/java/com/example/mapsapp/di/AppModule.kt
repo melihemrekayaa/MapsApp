@@ -2,9 +2,7 @@ package com.example.mapsapp.di
 
 import android.content.Context
 import com.example.mapsapp.util.SecurePreferences
-import com.example.mapsapp.webrtc.firebaseClient.FirebaseClient
-import com.example.mapsapp.webrtc.repository.MainRepository
-import com.example.mapsapp.webrtc.service.MainServiceRepository
+import com.example.mapsapp.webrtc.FirebaseClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
@@ -56,21 +54,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideMainRepository(
-        firestore: FirebaseFirestore
-    ): MainRepository {
-        return MainRepository(firestore)
-    }
-
-    @Provides
-    @Singleton
     fun provideFirebaseClient(): FirebaseClient = FirebaseClient()
 
-    @Provides
-    @Singleton
-    fun provideMainServiceRepository(@ApplicationContext context: Context): MainServiceRepository {
-        return MainServiceRepository(context)
-    }
 
 
 

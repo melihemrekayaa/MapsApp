@@ -20,12 +20,12 @@ import com.example.mapsapp.util.DataProvider
 import com.example.mapsapp.util.NavigationHelper
 import com.example.mapsapp.viewmodel.AuthViewModel
 import com.example.mapsapp.viewmodel.HomeViewModel
-import com.example.mapsapp.webrtc.firebaseClient.FirebaseClient
-import com.example.mapsapp.webrtc.model.DataModel
-import com.example.mapsapp.webrtc.service.MainServiceRepository
-import com.example.mapsapp.webrtc.ui.CallActivity
-import com.example.mapsapp.webrtc.utils.DataModelType
-import com.google.firebase.firestore.FirebaseFirestore
+import com.example.mapsapp.webrtc.CallActivity
+import com.google.firebase.database.ChildEventListener
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -36,12 +36,13 @@ class HomeFragment : BaseFragment() {
     private val binding get() = _binding!!
     private val homeViewModel: HomeViewModel by viewModels()
     private val authViewModel: AuthViewModel by viewModels()
+    private var callListenerAdded = false
+    private val firebaseDb = FirebaseDatabase.getInstance()
 
-    @Inject
-    lateinit var mainServiceRepository: MainServiceRepository
 
     @Inject
     lateinit var firebaseAuth: AuthRepository
+
 
     private lateinit var currentUserId: String
 
@@ -52,7 +53,6 @@ class HomeFragment : BaseFragment() {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
 
         currentUserId = firebaseAuth.getCurrentUser()?.uid ?: ""
-        mainServiceRepository.startService(currentUserId)
 
         observeUserInfo()
         setupRecyclerView()
@@ -74,13 +74,16 @@ class HomeFragment : BaseFragment() {
             addItemDecoration(DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL))
             adapter = CardAdapter(DataProvider.getCardItems()) { cardItem ->
                 if (cardItem.title == "Chat") {
-                    NavigationHelper.navigateTo(this@HomeFragment, "Chat", "receiver_user_id")
+                    val receiverUid = "receiver_user_id" // 🟡 TODO: Gerçek kullanıcı UID'si ile değiştir
+                    val isVideoCall = true // veya false, butona göre ayarlanabilir
+                    homeViewModel.sendCallRequest(receiverUid, isVideoCall)
                 } else {
                     NavigationHelper.navigateTo(this@HomeFragment, cardItem.title)
                 }
             }
         }
     }
+
 
     private fun setupListeners() {
         binding.exitBtn.setOnClickListener {
@@ -106,37 +109,59 @@ class HomeFragment : BaseFragment() {
         alertDialog.show()
     }
 
+
+
     private fun listenForIncomingCalls() {
-        FirebaseFirestore.getInstance().collection("calls")
-            .document(currentUserId)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null || snapshot == null || !snapshot.exists()) return@addSnapshotListener
+        val myUid = homeViewModel.user.value?.uid ?: return
 
-                val call = snapshot.toObject(DataModel::class.java) ?: return@addSnapshotListener
-                if (!call.isValid() || call.target != currentUserId) return@addSnapshotListener
+        FirebaseDatabase.getInstance()
+            .getReference("callRequests")
+            .child(myUid)
+            .addChildEventListener(object : ChildEventListener {
+                override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                    val callerUid = snapshot.child("callerUid").getValue(String::class.java) ?: return
+                    val roomId = snapshot.child("roomId").getValue(String::class.java) ?: return
+                    val isVideoCall = snapshot.child("isVideoCall").getValue(Boolean::class.java) ?: true
 
-                showIncomingCallDialog(call)
-            }
+                    // Bildirimi göster
+                    showIncomingCallDialog(roomId, callerUid, isVideoCall)
+                }
+
+                override fun onCancelled(error: DatabaseError) {}
+                override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+                override fun onChildRemoved(snapshot: DataSnapshot) {}
+                override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+            })
     }
 
-    private fun showIncomingCallDialog(call: DataModel) {
+
+
+    private fun showIncomingCallDialog(roomId: String, callerUid: String, isVideoCall: Boolean) {
         AlertDialog.Builder(requireContext())
-            .setTitle("Incoming ${call.type?.name}")
-            .setMessage("${call.sender} is calling you.")
-            .setPositiveButton("Accept") { _, _ ->
-                FirebaseClient().acceptCall(call.target!!)
-                startActivity(Intent(requireContext(), CallActivity::class.java).apply {
-                    putExtra("target", call.sender)
-                    putExtra("isVideoCall", call.type == DataModelType.StartVideoCall)
+            .setTitle("Gelen ${if (isVideoCall) "Görüntülü" else "Sesli"} Çağrı")
+            .setMessage("$callerUid seni arıyor.")
+            .setPositiveButton("Kabul Et") { _, _ ->
+                val intent = Intent(requireContext(), CallActivity::class.java).apply {
+                    putExtra("roomId", roomId)
+                    putExtra("callerUid", callerUid)
                     putExtra("isCaller", false)
-                })
+                    putExtra("isVideoCall", isVideoCall)
+                }
+                startActivity(intent)
             }
-            .setNegativeButton("Reject") { _, _ ->
-                FirebaseClient().rejectCall(call.target!!)
+            .setNegativeButton("Reddet") { _, _ ->
+                FirebaseDatabase.getInstance()
+                    .getReference("calls")
+                    .child(roomId)
+                    .child("status")
+                    .setValue("rejected")
             }
             .setCancelable(false)
             .show()
     }
+
+
+
 
     override fun onDestroyView() {
         super.onDestroyView()
