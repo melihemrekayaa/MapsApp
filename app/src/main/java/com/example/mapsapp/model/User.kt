@@ -5,10 +5,10 @@ data class User(
     val name: String = "",
     val email: String = "",
     val photoUrl: String? = null,
-    val friends: List<String> = listOf(), // UID listesi olmalı
-    val friendRequests: List<String> = listOf(),
+    val friends: List<String> = emptyList(),
+    val friendRequests: List<String> = emptyList(),
     val isOnline: Boolean = false,
-    val from : String = ""
 
+    @Transient
+    val isRequestSent: Boolean = false
 )
-

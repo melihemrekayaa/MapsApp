@@ -3,7 +3,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context=".webrtc.ui.WebRTCMainActivity"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -25,7 +24,7 @@
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:text="Someone is calling you"/>
+            android:text="Some one is calling you"/>
         <androidx.appcompat.widget.AppCompatButton
             android:layout_width="150dp"
             android:layout_height="40dp"

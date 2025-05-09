@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/incomingCallRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1E1E1E"
+    android:padding="24dp">
+
+    <!-- Avatar -->
+    <ImageView
+        android:id="@+id/imgAvatar"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="100dp"
+        android:src="@drawable/ic_profile_placeholder"
+        android:scaleType="centerCrop"
+        android:background="@drawable/circle_gray"
+        android:padding="8dp" />
+
+    <!-- Caller name -->
+    <TextView
+        android:id="@+id/tvCallerName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cezulettin"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp"
+        android:layout_below="@id/imgAvatar"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp" />
+
+    <!-- Call type -->
+    <TextView
+        android:id="@+id/tvCallType"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Görüntülü arama"
+        android:textColor="#AAAAAA"
+        android:textSize="16sp"
+        android:layout_below="@id/tvCallerName"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp" />
+
+    <!-- Accept button -->
+    <ImageView
+        android:id="@+id/tvAccept"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/ic_call_accept"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:layout_margin="32dp"
+        android:background="@drawable/circle_green"
+        android:padding="20dp" />
+
+    <!-- Reject button -->
+    <ImageView
+        android:id="@+id/tvReject"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/ic_call_end"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_margin="32dp"
+        android:background="@drawable/circle_red"
+        android:padding="20dp" />
+</RelativeLayout>

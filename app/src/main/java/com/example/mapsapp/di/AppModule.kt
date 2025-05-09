@@ -2,6 +2,7 @@ package com.example.mapsapp.di
 
 import android.content.Context
 import com.example.mapsapp.util.SecurePreferences
+import com.example.mapsapp.webrtc.FirebaseClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
@@ -26,9 +27,14 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideFirebaseFirestore() : FirebaseFirestore {
+    fun provideFirestore(): FirebaseFirestore {
         return FirebaseFirestore.getInstance()
     }
+
+    @Provides
+    @Singleton
+    fun provideGson(): Gson = Gson()
+
 
     @Provides
     @Singleton
@@ -39,14 +45,18 @@ object AppModule {
     @Provides
     fun provideContext(@ApplicationContext context: Context) : Context = context.applicationContext
 
-    @Provides
-    fun provideGson(): Gson = Gson()
 
     @Provides
     fun provideDataBaseInstance(): FirebaseDatabase = FirebaseDatabase.getInstance()
 
     @Provides
     fun provideDatabaseReference(db: FirebaseDatabase): DatabaseReference = db.reference
+
+    @Provides
+    @Singleton
+    fun provideFirebaseClient(): FirebaseClient = FirebaseClient()
+
+
 
 
 }

@@ -4,23 +4,16 @@ import android.app.AlertDialog
 import android.app.Dialog
 import android.os.Bundle
 import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.constraintlayout.widget.Guideline
-import androidx.core.content.ContentProviderCompat.requireContext
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.example.mapsapp.R
 import com.example.mapsapp.adapter.FriendsAdapter
 import com.example.mapsapp.adapter.FriendRequestsAdapter
@@ -29,10 +22,6 @@ import com.example.mapsapp.databinding.DialogFriendRequestsBinding
 import com.example.mapsapp.model.User
 import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatInterfaceViewModel
-import com.example.mapsapp.webrtc.utils.DataModel
-import com.google.android.material.badge.BadgeDrawable
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
@@ -86,8 +75,11 @@ class ChatInterfaceFragment : BaseFragment() {
     }
 
     private fun navigateToChat(friend: User) {
-        val action = ChatInterfaceFragmentDirections.actionChatInterfaceFragmentToChatFragment(friend.uid)
-        findNavController().navigate(action)
+        val bundle = Bundle()
+        bundle.putString("receiverId", friend.uid)
+        bundle.putString("receiverName", friend.name)
+
+        findNavController().navigate(R.id.action_chatInterfaceFragment_to_chatFragment,bundle)
     }
 
 
@@ -109,8 +101,8 @@ class ChatInterfaceFragment : BaseFragment() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     chatInterfaceViewModel.friendsList.collectLatest { friends ->
-                        friendsAdapter.submitList(friends)
                         Log.d("ChatInterfaceFragment", "Updated Friends List: ${friends.map { it.name }}")
+                        friendsAdapter.submitList(friends)
                     }
                 }
 
@@ -139,10 +131,6 @@ class ChatInterfaceFragment : BaseFragment() {
         }
     }
 
-
-
-
-
     private fun showFriendRequestsDialog() {
         val bindingSheet = DialogFriendRequestsBinding.inflate(layoutInflater)
         dialog.setContentView(bindingSheet.root)
@@ -165,10 +153,6 @@ class ChatInterfaceFragment : BaseFragment() {
         dialog.show()
     }
 
-
-
-
-
     private fun showRemoveFriendDialog(friend: User) {
         AlertDialog.Builder(requireContext())
             .setTitle("Remove Friend")
@@ -182,17 +166,6 @@ class ChatInterfaceFragment : BaseFragment() {
             }
             .show()
     }
-
-    private fun removeFriend(friend: User) {
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        chatInterfaceViewModel.removeFriend(currentUserId, friend.uid)
-
-        // Silme işlemi sonrası listeyi güncelle
-        chatInterfaceViewModel.fetchFriendsList(currentUserId)
-        showToast("${friend.name} removed from your friends list")
-    }
-
-
 
     private fun showToast(message: String) {
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()

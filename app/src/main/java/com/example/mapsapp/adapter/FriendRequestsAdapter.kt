@@ -10,7 +10,6 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.mapsapp.R
-import com.example.mapsapp.databinding.ItemFriendRequestBinding
 import com.example.mapsapp.model.User
 
 class FriendRequestsAdapter(

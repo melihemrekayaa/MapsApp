@@ -1,49 +1,45 @@
 package com.example.mapsapp.view.ui
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.view.WindowManager
+import android.util.Log
+import android.view.*
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mapsapp.R
 import com.example.mapsapp.adapter.ChatAdapter
 import com.example.mapsapp.databinding.FragmentChatBinding
-import com.example.mapsapp.model.User
 import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatViewModel
-import com.example.mapsapp.webrtc.repository.MainRepository
-import com.example.mapsapp.webrtc.service.MainService
-import com.example.mapsapp.webrtc.ui.CallActivity
-import com.example.mapsapp.webrtc.ui.WebRTCMainActivity
-import com.example.mapsapp.webrtc.utils.DataModel
-import com.example.mapsapp.webrtc.utils.DataModelType
+import com.example.mapsapp.webrtc.CallActivity
+import com.example.mapsapp.webrtc.FirebaseClient
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.firestore.ListenerRegistration
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class ChatFragment : BaseFragment(), MainService.Listener {
+class ChatFragment : BaseFragment() {
+
     private var _binding: FragmentChatBinding? = null
     private val binding get() = _binding!!
     private lateinit var auth: FirebaseAuth
     private val chatViewModel: ChatViewModel by viewModels()
     private lateinit var adapter: ChatAdapter
     private var receiverId: String? = null
-
+    private var receiverName: String? = null
     @Inject
-    lateinit var mainRepository: MainRepository
+    lateinit var firebaseClient: FirebaseClient
+
+    private lateinit var toolbar: androidx.appcompat.widget.Toolbar
+    private var callDialogShown = false
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -52,138 +48,144 @@ class ChatFragment : BaseFragment(), MainService.Listener {
         _binding = FragmentChatBinding.inflate(inflater, container, false)
         auth = FirebaseAuth.getInstance()
 
-        // Argumentten receiverId'yi alın
         receiverId = arguments?.getString("receiverId")
+        receiverName = arguments?.getString("receiverName")
 
-        if (receiverId == null) {
-            Toast.makeText(requireContext(), "User not found!", Toast.LENGTH_SHORT).show()
-            findNavController().navigateUp() // Eğer ID yoksa geri git
-        } else {
-            fetchReceiverInfo(receiverId!!)
-        }
+        Log.d("ChatFragment", "receiverId: $receiverId") // 📌 **Gelen receiverId kontrolü**
 
-        init()
+        initChatUI()
+
+        toolbar = binding.chatToolbar
         setupToolbar()
 
+        toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_voice_call -> {
+                    Log.d("ChatFragment", "🔊 Sesli Arama Başlatılıyor...")
+                    startCall(false)
+                    true
+                }
+                R.id.action_video_call -> {
+                    Log.d("ChatFragment", "📹 Görüntülü Arama Başlatılıyor...")
+                    startCall(true)
+                    true
+                }
+                else -> false
+            }
+        }
+
+        return binding.root
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        chatViewModel.listenForIncomingCalls(currentUserId) { roomId, callerUid, isVideoCall ->
+            if (!callDialogShown) {
+                callDialogShown = true
+                showIncomingCallDialog(roomId, callerUid, isVideoCall)
+            }
+        }
+    }
+
+    private fun initChatUI() {
         adapter = ChatAdapter(chatViewModel.messages.value ?: emptyList(), auth.currentUser?.uid ?: "")
         binding.recyclerView.adapter = adapter
         binding.recyclerView.layoutManager = LinearLayoutManager(context)
 
         binding.sendButton.setOnClickListener {
             val messageText = binding.messageEditText.text.toString()
-            receiverId?.let { receiverId ->
-                chatViewModel.sendMessage(receiverId, messageText)
+            if (messageText.isNotBlank() && receiverId != null) {
+                chatViewModel.sendMessage(receiverId!!, messageText)
                 binding.messageEditText.text?.clear()
                 binding.recyclerView.scrollToPosition(adapter.itemCount - 1)
             }
         }
 
+        binding.loadingIndicator.visibility = View.VISIBLE
+
         chatViewModel.messages.observe(viewLifecycleOwner) { messages ->
             adapter.updateMessages(messages)
             binding.recyclerView.scrollToPosition(messages.size - 1)
+            binding.loadingIndicator.visibility = View.GONE
         }
 
         receiverId?.let { chatViewModel.listenForMessages(it) }
-
         activity?.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
-
-        return binding.root
-    }
-
-    private fun init() {
-        subscribeObservers()
-    }
-
-    private fun subscribeObservers() {
-        MainService.listener = this
     }
 
     private fun setupToolbar() {
-        val toolbar = binding.chatToolbar
         toolbar.setNavigationIcon(R.drawable.ic_arrow_back)
+        toolbar.navigationIcon?.setTint(resources.getColor(R.color.white))
+        toolbar.title = receiverName ?: "User"
         toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
         }
-
-        receiverId?.let { id ->
-            chatViewModel.fetchUserName(id).observe(viewLifecycleOwner) { userName ->
-                toolbar.title = userName ?: "User"
-            }
-        }
-
-        toolbar.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                R.id.action_voice_call -> {
-                    startVoiceCall()
-                    true
-                }
-                R.id.action_video_call -> {
-                    startVideoCall()
-                    true
-                }
-                else -> false
-            }
-        }
     }
 
-    private fun fetchReceiverInfo(receiverId: String) {
-        val firestore = FirebaseFirestore.getInstance()
-        firestore.collection("users").document(receiverId).get()
-            .addOnSuccessListener { document ->
-                if (document.exists()) {
-                    val user = document.toObject(User::class.java)
-                    binding.chatToolbar.title = user?.name ?: "Unknown"
-                }
-            }
-            .addOnFailureListener {
-                Toast.makeText(requireContext(), "Failed to fetch user info", Toast.LENGTH_SHORT).show()
-            }
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
-
-    private fun startVoiceCall() {
+    private fun startCall(isVideoCall: Boolean) {
         getCameraAndMicPermission {
             receiverId?.let { receiverId ->
-                val senderUsername = getUsernameFromEmail(auth.currentUser?.email ?: "")
-                mainRepository.sendConnectionRequest(receiverId, false) { success ->
+                val roomId = "room_${System.currentTimeMillis()}"
+                val senderUid = FirebaseAuth.getInstance().currentUser?.uid ?: return@let
+
+                chatViewModel.sendCallRequest(receiverId, isVideoCall, roomId, requireContext()) { success ->
                     if (success) {
-                        startActivity(Intent(context, WebRTCMainActivity::class.java).apply {
-                            putExtra("target", receiverId)
-                            putExtra("isVideoCall", false)
-                            putExtra("isCaller", true)
-                            putExtra("username", senderUsername)
-                        })
+                        firebaseClient.listenForCallStatus(roomId) { status ->
+                            when (status) {
+                                "rejected" -> {
+                                    Toast.makeText(requireContext(), "Çağrı reddedildi", Toast.LENGTH_SHORT).show()
+                                }
+                                "accepted" -> {
+                                    // opsiyonel: kabul ekranı gösterilebilir
+                                }
+                            }
+                        }
+
+                        if (!CallActivity.isActive) {
+                            val intent = Intent(requireContext(), CallActivity::class.java).apply {
+                                putExtra("roomId", roomId)
+                                putExtra("isCaller", true)
+                                putExtra("callerUid", senderUid)
+                                putExtra("isVideoCall", true)
+                            }
+                            startActivity(intent)
+                        }
+
                     } else {
-                        Toast.makeText(context, "Voice call failed", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "Çağrı gönderilemedi", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
         }
     }
 
-    private fun startVideoCall() {
-        getCameraAndMicPermission {
-            receiverId?.let { receiverId ->
-                val senderUsername = getUsernameFromEmail(auth.currentUser?.email ?: "")
-                mainRepository.sendConnectionRequest(receiverId, true) { success ->
-                    if (success) {
-                        startActivity(Intent(context, CallActivity::class.java).apply {
-                            putExtra("target", receiverId)
-                            putExtra("isVideoCall", true)
-                            putExtra("isCaller", true)
-                            putExtra("username", senderUsername)
-                        })
-                    } else {
-                        Toast.makeText(context, "Video call failed", Toast.LENGTH_SHORT).show()
-                    }
+
+
+
+    private fun showIncomingCallDialog(roomId: String, callerUid: String, isVideoCall: Boolean) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Incoming ${if (isVideoCall) "Video" else "Voice"} Call")
+            .setMessage("User $callerUid is calling you.")
+            .setPositiveButton("Accept") { _, _ ->
+                val intent = Intent(requireContext(), CallActivity::class.java).apply {
+                    putExtra("roomId", roomId)
+                    putExtra("callerUid", callerUid)
+                    putExtra("isVideoCall", isVideoCall)
+                    putExtra("isCaller", false)
                 }
+                startActivity(intent)
             }
-        }
+            .setNegativeButton("Reject") { _, _ ->
+                firebaseClient.rejectCall(roomId)
+            }
+            .setCancelable(false)
+            .show()
     }
+
+
+
 
     private fun getCameraAndMicPermission(onPermissionGranted: () -> Unit) {
         val permissions = arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO)
@@ -192,14 +194,14 @@ class ChatFragment : BaseFragment(), MainService.Listener {
         }
 
         if (permissionsToRequest.isEmpty()) {
+            Log.d("ChatFragment", "✅ Kamera ve Mikrofon izinleri zaten verilmiş.")
             onPermissionGranted()
         } else {
-            Companion.onPermissionGranted = onPermissionGranted
+            Log.d("ChatFragment", "🚨 Kamera ve Mikrofon izinleri isteniyor: $permissionsToRequest")
             requestPermissions(permissionsToRequest.toTypedArray(), REQUEST_CODE_PERMISSIONS)
         }
     }
 
-    @Deprecated("Deprecated in Java")
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -208,45 +210,27 @@ class ChatFragment : BaseFragment(), MainService.Listener {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                Log.d("ChatFragment", "✅ Kullanıcı izinleri onayladı.")
                 onPermissionGranted?.invoke()
             } else {
-                Toast.makeText(requireContext(), "Permissions not granted by the user.", Toast.LENGTH_SHORT).show()
+                Log.e("ChatFragment", "🚨 Kullanıcı izinleri reddetti.")
+                Toast.makeText(requireContext(), "Çağrı için izinler gerekli.", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    override fun onResume() {
+        super.onResume()
+        callDialogShown = false
     }
 
     companion object {
         private const val REQUEST_CODE_PERMISSIONS = 10
         private var onPermissionGranted: (() -> Unit)? = null
-    }
-
-    private fun getUsernameFromEmail(email: String): String {
-        return email.substringBefore("@")
-    }
-
-    override fun onCallReceived(model: DataModel) {
-        CoroutineScope(Dispatchers.Main).launch {
-            _binding?.apply {
-                val isVideoCall = model.type == DataModelType.StartVideoCall
-                val isVideoCallText = if (isVideoCall) "Video" else "Audio"
-                incomingCallTitleTv.text = "${model.sender} is $isVideoCallText Calling you"
-                incomingCallLayout.isVisible = true
-                acceptButton.setOnClickListener {
-                    getCameraAndMicPermission {
-                        incomingCallLayout.isVisible = false
-                        startActivity(Intent(requireContext(), CallActivity::class.java).apply {
-                            putExtra("target", model.sender)
-                            putExtra("isVideoCall", isVideoCall)
-                            putExtra("isCaller", false)
-                            putExtra("username", "username")
-                        })
-                    }
-                }
-                declineButton.setOnClickListener {
-                    incomingCallLayout.isVisible = false
-                    mainRepository.endCall()
-                }
-            }
-        }
     }
 }

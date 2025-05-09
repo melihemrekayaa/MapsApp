@@ -8,6 +8,7 @@ import com.example.mapsapp.repository.AuthRepository
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
+/*
 class AppLifecycleListener @Inject constructor(
     private val authRepository: AuthRepository
 ) : DefaultLifecycleObserver {
@@ -30,3 +31,4 @@ class AppLifecycleListener @Inject constructor(
         }
     }
 }
+*/

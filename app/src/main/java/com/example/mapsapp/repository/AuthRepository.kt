@@ -1,22 +1,17 @@
 package com.example.mapsapp.repository
 
 import android.util.Log
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.example.mapsapp.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.gson.Gson
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.coroutineContext
 
 @Singleton
 class AuthRepository @Inject constructor(
@@ -39,7 +34,6 @@ class AuthRepository @Inject constructor(
             val result = auth.createUserWithEmailAndPassword(email, password).await()
             val userId = result.user?.uid ?: throw Exception("User ID is null")
 
-            // Kullanıcı verilerini Firestore'a kaydet
             val user = User(
                 uid = userId,
                 name = name,
@@ -48,12 +42,12 @@ class AuthRepository @Inject constructor(
                 friendRequests = listOf()
             )
             firestore.collection("users").document(userId).set(user).await()
-
             Result.success("User registered successfully")
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+
 
     fun login(email: String, password: String, onComplete: (FirebaseUser?, String?) -> Unit) {
         auth.signInWithEmailAndPassword(email, password)
@@ -74,16 +68,19 @@ class AuthRepository @Inject constructor(
 
     suspend fun loadUsers(): List<User> {
         return try {
-            Log.d("AuthRepository", "Fetching users from Firestore")
+            val currentUserId = getCurrentUser()?.uid
             val snapshot = firestore.collection("users").get().await()
-            val users = snapshot.toObjects(User::class.java)
-            Log.d("AuthRepository", "Fetched users: $users")
+            val users = snapshot.toObjects(User::class.java).map { user ->
+                val isRequestSent = user.friendRequests.contains(currentUserId)
+                user.copy(isRequestSent = isRequestSent)
+            }
             users
         } catch (e: Exception) {
-            Log.e("AuthRepository", "Error fetching users: ${e.message}")
             emptyList()
         }
     }
+
+
 
 
 
@@ -139,11 +136,8 @@ class AuthRepository @Inject constructor(
     fun getFriendsList(userId: String): Flow<List<User>> = callbackFlow {
         val userDocRef = firestore.collection("users").document(userId)
 
-        Log.d("AuthRepository", "Fetching friends list for user: $userId")
-
         val listener = userDocRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                Log.e("AuthRepository", "Error fetching friends: ${error.message}")
                 close(error)
                 return@addSnapshotListener
             }
@@ -152,25 +146,20 @@ class AuthRepository @Inject constructor(
                 val friendsList = snapshot.get("friends") as? List<String> ?: emptyList()
 
                 if (friendsList.isEmpty()) {
-                    Log.w("AuthRepository", "No friends found for user: $userId")
                     trySend(emptyList())
                 } else {
                     val friends = mutableListOf<User>()
-
-                    // Firestore'dan her arkadaşın bilgilerini çekiyoruz
                     friendsList.forEach { friendId ->
                         firestore.collection("users").document(friendId)
                             .get()
                             .addOnSuccessListener { friendSnapshot ->
-                                friendSnapshot.toObject(User::class.java)?.let { friend ->
-                                    friends.add(friend)
-                                    trySend(friends.toList()) // Güncellenmiş listeyi gönder
-                                    Log.d("AuthRepository", "Friend added: ${friend.name}")
+                                val friend = friendSnapshot.toObject(User::class.java)
+                                friend?.let {
+                                    friends.add(it)
+                                    trySend(friends.toList())
                                 }
                             }
-                            .addOnFailureListener { e ->
-                                Log.e("AuthRepository", "Error fetching friend details: ${e.message}")
-                            }
+                            .addOnFailureListener { Log.e("AuthRepo", "Friend fetch error: ${it.message}") }
                     }
                 }
             }
@@ -178,6 +167,8 @@ class AuthRepository @Inject constructor(
 
         awaitClose { listener.remove() }
     }
+
+
 
 
 

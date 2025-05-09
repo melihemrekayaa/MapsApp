@@ -36,6 +36,12 @@ class LoginFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        binding.registerRedirectText.setOnClickListener {
+            val navController = findNavController()
+            val action = LoginFragmentDirections.actionLoginFragmentToRegisterFragment()
+            navController.navigate(action)
+        }
+
         authViewModel.checkLoginState()
         setupListeners()
         observeViewModel()

@@ -32,6 +32,11 @@ class RegisterFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        binding.loginRedirectText.setOnClickListener {
+            val action = RegisterFragmentDirections.actionRegisterFragmentToLoginFragment()
+            findNavController().navigate(action)
+        }
+
         // Register Button Click Listener
         binding.registerButton.setOnClickListener {
             val name = binding.nameEditTextRegister.text.toString().trim()

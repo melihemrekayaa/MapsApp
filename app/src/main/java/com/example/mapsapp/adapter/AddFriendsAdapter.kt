@@ -20,12 +20,7 @@ class AddFriendsAdapter(
         fun bind(user: User) {
             binding.userName.text = user.name
 
-            // Arkadaşlık isteği durumu kontrolü
-            val currentUserId = user.uid
-            val isRequestSent = user.friendRequests.contains(currentUserId)
-
-            // Eğer arkadaşlık isteği gönderildiyse, butonları değiştir
-            if (isRequestSent) {
+            if (user.isRequestSent) {
                 binding.addFriendButton.visibility = View.GONE
                 binding.cancelButton.visibility = View.VISIBLE
             } else {
@@ -33,30 +28,13 @@ class AddFriendsAdapter(
                 binding.cancelButton.visibility = View.GONE
             }
 
-            // Add Friend Butonu
             binding.addFriendButton.setOnClickListener {
                 onAddFriendClick(user)
-                updateUserRequestStatus(user, true)
             }
 
-            // Cancel Request Butonu
             binding.cancelButton.setOnClickListener {
                 onCancelRequestClick(user)
-                updateUserRequestStatus(user, false)
             }
-        }
-
-        // Arkadaşlık isteği durumunu güncelle
-        private fun updateUserRequestStatus(user: User, isRequestSent: Boolean) {
-            val updatedFriendRequests = if (isRequestSent) {
-                user.friendRequests + user.uid // Arkadaşlık isteği göndermek
-            } else {
-                user.friendRequests - user.uid // Arkadaşlık isteğini iptal etmek
-            }
-
-            // Kullanıcının arkadaşlık isteklerini güncelle
-            users[bindingAdapterPosition] = user.copy(friendRequests = updatedFriendRequests)
-            notifyItemChanged(bindingAdapterPosition)
         }
     }
 
