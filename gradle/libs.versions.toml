@@ -24,6 +24,7 @@ constraintlayout = "2.1.4"
 googleAndroidLibrariesMapsplatformSecretsGradlePlugin = "2.0.1"
 okhttp = "4.12.0"
 permissionx = "1.6.1"
+playServicesAuth = "21.3.0"
 playServicesMaps = "19.0.0"
 lifecycleRuntimeKtx = "2.8.3"
 activityCompose = "1.9.0"
@@ -33,6 +34,7 @@ retrofit = "2.11.0"
 swiperefreshlayout = "1.1.0"
 webrtc = "1.0.5"
 lifecycleProcess = "2.8.7"
+uiTestAndroid = "1.5.0"
 
 [libraries]
 androidx-constraintlayout-v220 = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayoutVersion" }
@@ -59,6 +61,7 @@ androidx-activity = { group = "androidx.activity", name = "activity", version.re
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 permissionx = { module = "com.guolindev.permissionx:permissionx", version.ref = "permissionx" }
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -74,6 +77,7 @@ androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview"
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 webrtc = { module = "com.mesibo.api:webrtc", version.ref = "webrtc" }
 androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
+androidx-ui-test-android = { group = "androidx.compose.ui", name = "ui-test-android", version.ref = "uiTestAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

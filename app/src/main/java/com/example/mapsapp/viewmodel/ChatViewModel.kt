@@ -53,36 +53,41 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun listenForIncomingCalls(
-        userId: String,
-        onCallReceived: (roomId: String, callerUid: String, isVideoCall: Boolean) -> Unit
-    ) {
-        incomingCallRef = FirebaseDatabase.getInstance().getReference("callRequests").child(userId)
+    fun listenForIncomingCalls(userId: String, onCall: (roomId: String, callerUid: String, isVideoCall: Boolean) -> Unit) {
+        val ref = FirebaseDatabase.getInstance().getReference("callRequests").child(userId)
 
-        incomingCallListener = object : ChildEventListener {
+        ref.addChildEventListener(object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                if (isCallActive) return  // 🔐 Zaten aktif bir çağrı varsa işlem yapma
+                val roomId = snapshot.child("roomId").getValue(String::class.java) ?: return
+                val callerUid = snapshot.child("callerUid").getValue(String::class.java) ?: return
+                val isVideoCall = snapshot.child("isVideoCall").getValue(Boolean::class.java) ?: true
 
-                val data = snapshot.value as? Map<*, *> ?: return
-                val roomId = data["roomId"] as? String ?: return
-                val callerUid = data["callerUid"] as? String ?: return
-                val isVideoCall = data["isVideoCall"] as? Boolean ?: true
+                val callsRef = FirebaseDatabase.getInstance().getReference("calls").child(roomId)
 
-                isCallActive = true  // 🔓 Bir kere açıldı
-                onCallReceived(roomId, callerUid, isVideoCall)
+                callsRef.child("callEnded").addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(endSnapshot: DataSnapshot) {
+                        val callEnded = endSnapshot.getValue(Boolean::class.java) ?: false
+                        if (!callEnded) {
+                            // 👇 Çağrıyı yansıtmadan önce callRequest’i temizle
+                            firebaseClient.removeCallRequest(userId, roomId) {
+                                onCall(roomId, callerUid, isVideoCall)
+                            }
+                        }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {}
+                })
             }
 
-            override fun onChildRemoved(snapshot: DataSnapshot) {
-                isCallActive = false  // ✅ Çağrı kapatıldıysa tekrar çağrıya izin ver
-            }
-
-            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
-            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
             override fun onCancelled(error: DatabaseError) {}
-        }
-
-        incomingCallRef?.addChildEventListener(incomingCallListener!!)
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onChildRemoved(snapshot: DataSnapshot) {}
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+        })
     }
+
+
+
 
 
     fun sendMessage(receiverId: String, messageText: String) {
@@ -113,6 +118,22 @@ class ChatViewModel @Inject constructor(
             onComplete = onComplete
         )
     }
+
+    fun rejectIncomingCall(roomId: String) {
+        firebaseClient.rejectCall(roomId)
+    }
+
+    fun cancelOutgoingCall(roomId: String) {
+        firebaseClient.cancelCall(roomId)
+    }
+
+    fun clearCall(roomId: String) {
+        firebaseClient.cancelCall(roomId)
+        val uid = auth.currentUser?.uid ?: return
+        firebaseClient.removeCallRequest(uid, roomId)
+    }
+
+
 
     override fun onCleared() {
         super.onCleared()

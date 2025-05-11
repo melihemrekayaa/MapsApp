@@ -7,28 +7,21 @@ import android.media.RingtoneManager
 import android.os.*
 import android.util.Log
 import android.view.MotionEvent
-import android.view.View
-import android.widget.ImageView
-import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.mapsapp.R
+import androidx.core.view.ViewCompat
+import com.example.mapsapp.databinding.ActivityIncomingCallBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class IncomingCallActivity : AppCompatActivity() {
 
-    private lateinit var tvCallerName: TextView
-    private lateinit var tvAccept: ImageView
-    private lateinit var tvReject: ImageView
-
+    private lateinit var binding: ActivityIncomingCallBinding
+    private var isActionTaken = false
     private var ringtone: Ringtone? = null
     private var vibrator: Vibrator? = null
-
-    private var x1 = 0f
-    private var x2 = 0f
-    private val MIN_DISTANCE = 150
 
     private var roomId: String = ""
     private var callerUid: String = ""
@@ -39,48 +32,49 @@ class IncomingCallActivity : AppCompatActivity() {
     @Inject
     lateinit var firebaseClient: FirebaseClient
 
+    companion object {
+        var isActive = false
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_incoming_call)
+        binding = ActivityIncomingCallBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         roomId = intent.getStringExtra("roomId") ?: ""
         callerUid = intent.getStringExtra("callerUid") ?: ""
         isVideoCall = intent.getBooleanExtra("isVideoCall", true)
 
         if (roomId.isBlank() || callerUid.isBlank()) {
-            Toast.makeText(this, "Geçersiz çağrı bilgisi", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
-        tvCallerName = findViewById(R.id.tvCallerName)
-        tvAccept = findViewById(R.id.tvAccept)
-        tvReject = findViewById(R.id.tvReject)
-
-        tvCallerName.text = "User: $callerUid"
-
+        binding.tvCallerName.text = "User: $callerUid"
         startRingtoneAndVibration()
 
-        tvAccept.setOnClickListener { answerCall() }
-        tvReject.setOnClickListener { rejectCall() }
+        binding.tvAccept.setOnClickListener { answerCall() }
+        binding.tvReject.setOnClickListener { rejectCall() }
 
-        findViewById<View>(R.id.incomingCallRoot).setOnTouchListener { view, event ->
+        binding.incomingCallRoot.setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    x1 = event.x
+                    v.tag = event.x
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    x2 = event.x
-                    val deltaX = x2 - x1
-                    if (kotlin.math.abs(deltaX) > MIN_DISTANCE) {
+                    val deltaX = event.x - (v.tag as? Float ?: 0f)
+                    if (kotlin.math.abs(deltaX) > 150) {
                         if (deltaX > 0) answerCall() else rejectCall()
-                    } else view.performClick()
+                    } else {
+                        v.performClick()  // ☑️ Uyarıyı çözen satır
+                    }
                     true
                 }
                 else -> false
             }
         }
+
     }
 
     private fun startRingtoneAndVibration() {
@@ -93,26 +87,30 @@ class IncomingCallActivity : AppCompatActivity() {
             val pattern = longArrayOf(0, 1000, 1000)
             vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
         } catch (e: Exception) {
-            Log.e("IncomingCallActivity", "Ses veya titreşim başlatılamadı", e)
+            Log.e("IncomingCall", "Ringtone/Vibration error", e)
         }
     }
 
     private fun stopRingtoneAndVibration() {
-        ringtone?.stop()
-        vibrator?.cancel()
+        try {
+            ringtone?.stop()
+            vibrator?.cancel()
+        } catch (_: Exception) {}
     }
 
     private fun answerCall() {
+        if (isActionTaken) return
+        isActionTaken = true
+
         stopRingtoneAndVibration()
         firebaseClient.acceptCall(roomId)
 
         clearCallRequest {
-            val intent = Intent(this@IncomingCallActivity, CallActivity::class.java).apply {
+            val intent = Intent(this, CallActivity::class.java).apply {
                 putExtra("roomId", roomId)
                 putExtra("callerUid", callerUid)
                 putExtra("isCaller", false)
                 putExtra("isVideoCall", isVideoCall)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             }
             startActivity(intent)
             finish()
@@ -120,32 +118,45 @@ class IncomingCallActivity : AppCompatActivity() {
     }
 
     private fun rejectCall() {
+        if (isActionTaken) return
+        isActionTaken = true
+
         stopRingtoneAndVibration()
         firebaseClient.rejectCall(roomId)
+        firebaseClient.cancelCall(roomId)    // ← ekledik
 
-        firebaseDb.getReference("calls").child(roomId).child("callEnded").setValue(true)
         clearCallRequest { finish() }
     }
 
-    private fun clearCallRequest(onComplete: () -> Unit) {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return onComplete()
 
-        val callRequestsRef = firebaseDb.getReference("callRequests").child(userId)
-        callRequestsRef.orderByChild("roomId").equalTo(roomId)
+
+    private fun clearCallRequest(onComplete: () -> Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return onComplete()
+        firebaseDb.getReference("callRequests").child(uid)
+            .orderByChild("roomId").equalTo(roomId)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     snapshot.children.forEach { it.ref.removeValue() }
                     onComplete()
                 }
-
-                override fun onCancelled(error: DatabaseError) {
-                    onComplete()
-                }
+                override fun onCancelled(error: DatabaseError) = onComplete()
             })
     }
+
+
 
     override fun onDestroy() {
         super.onDestroy()
         stopRingtoneAndVibration()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        isActive = true
+    }
+
+    override fun onStop() {
+        super.onStop()
+        isActive = false
     }
 }
