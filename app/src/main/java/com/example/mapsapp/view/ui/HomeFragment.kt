@@ -36,8 +36,7 @@ class HomeFragment : BaseFragment() {
     private val binding get() = _binding!!
     private val homeViewModel: HomeViewModel by viewModels()
     private val authViewModel: AuthViewModel by viewModels()
-    private var callListenerAdded = false
-    private val firebaseDb = FirebaseDatabase.getInstance()
+
 
 
     @Inject
@@ -57,7 +56,6 @@ class HomeFragment : BaseFragment() {
         observeUserInfo()
         setupRecyclerView()
         setupListeners()
-        listenForIncomingCalls()
 
         return binding.root
     }
@@ -74,10 +72,6 @@ class HomeFragment : BaseFragment() {
             addItemDecoration(DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL))
             adapter = CardAdapter(DataProvider.getCardItems()) { cardItem ->
                 if (cardItem.title == "Chat") {
-                    val receiverUid = "receiver_user_id" // 🟡 TODO: Gerçek kullanıcı UID'si ile değiştir
-                    val isVideoCall = true // veya false, butona göre ayarlanabilir
-                    homeViewModel.sendCallRequest(receiverUid, isVideoCall)
-                } else {
                     NavigationHelper.navigateTo(this@HomeFragment, cardItem.title)
                 }
             }
@@ -108,59 +102,6 @@ class HomeFragment : BaseFragment() {
 
         alertDialog.show()
     }
-
-
-
-    private fun listenForIncomingCalls() {
-        val myUid = homeViewModel.user.value?.uid ?: return
-
-        FirebaseDatabase.getInstance()
-            .getReference("callRequests")
-            .child(myUid)
-            .addChildEventListener(object : ChildEventListener {
-                override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                    val callerUid = snapshot.child("callerUid").getValue(String::class.java) ?: return
-                    val roomId = snapshot.child("roomId").getValue(String::class.java) ?: return
-                    val isVideoCall = snapshot.child("isVideoCall").getValue(Boolean::class.java) ?: true
-
-                    // Bildirimi göster
-                    showIncomingCallDialog(roomId, callerUid, isVideoCall)
-                }
-
-                override fun onCancelled(error: DatabaseError) {}
-                override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
-                override fun onChildRemoved(snapshot: DataSnapshot) {}
-                override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
-            })
-    }
-
-
-
-    private fun showIncomingCallDialog(roomId: String, callerUid: String, isVideoCall: Boolean) {
-        AlertDialog.Builder(requireContext())
-            .setTitle("Gelen ${if (isVideoCall) "Görüntülü" else "Sesli"} Çağrı")
-            .setMessage("$callerUid seni arıyor.")
-            .setPositiveButton("Kabul Et") { _, _ ->
-                val intent = Intent(requireContext(), CallActivity::class.java).apply {
-                    putExtra("roomId", roomId)
-                    putExtra("callerUid", callerUid)
-                    putExtra("isCaller", false)
-                    putExtra("isVideoCall", isVideoCall)
-                }
-                startActivity(intent)
-            }
-            .setNegativeButton("Reddet") { _, _ ->
-                FirebaseDatabase.getInstance()
-                    .getReference("calls")
-                    .child(roomId)
-                    .child("status")
-                    .setValue("rejected")
-            }
-            .setCancelable(false)
-            .show()
-    }
-
-
 
 
     override fun onDestroyView() {

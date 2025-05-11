@@ -18,8 +18,14 @@ import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatViewModel
 import com.example.mapsapp.webrtc.CallActivity
 import com.example.mapsapp.webrtc.FirebaseClient
+import com.example.mapsapp.webrtc.IncomingCallActivity
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.ChildEventListener
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.ListenerRegistration
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -39,6 +45,11 @@ class ChatFragment : BaseFragment() {
 
     private lateinit var toolbar: androidx.appcompat.widget.Toolbar
     private var callDialogShown = false
+
+    private lateinit var callRequestsRef: DatabaseReference
+    private lateinit var callRequestListener: ChildEventListener
+
+
 
 
     override fun onCreateView(
@@ -77,6 +88,50 @@ class ChatFragment : BaseFragment() {
         return binding.root
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        // Tek seferlik listener referansları
+        callRequestsRef = FirebaseDatabase.getInstance()
+            .getReference("callRequests")
+            .child(currentUserId)
+
+        callRequestListener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, prevName: String?) {
+                val roomId = snapshot.child("roomId").getValue(String::class.java) ?: return
+                val callerUid = snapshot.child("callerUid").getValue(String::class.java) ?: return
+                val isVideoCall = snapshot.child("isVideoCall").getValue(Boolean::class.java) ?: true
+
+                FirebaseDatabase.getInstance().getReference("calls")
+                    .child(roomId)
+                    .child("callEnded")
+                    .addListenerForSingleValueEvent(object : ValueEventListener {
+                        override fun onDataChange(endSnap: DataSnapshot) {
+                            val ended = endSnap.getValue(Boolean::class.java) ?: false
+                            if (!ended) {
+                                snapshot.ref.removeValue()
+                                val intent = Intent(requireContext(), IncomingCallActivity::class.java).apply {
+                                    putExtra("roomId", roomId)
+                                    putExtra("callerUid", callerUid)
+                                    putExtra("isVideoCall", isVideoCall)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }.also { startActivity(it) }
+                                startActivity(intent)
+                            }
+                        }
+                        override fun onCancelled(error: DatabaseError) {}
+                    })
+            }
+            override fun onChildChanged(snapshot: DataSnapshot, prevName: String?) {}
+            override fun onChildRemoved(snapshot: DataSnapshot) {}
+            override fun onChildMoved(snapshot: DataSnapshot, prevName: String?) {}
+            override fun onCancelled(error: DatabaseError) {}
+        }
+
+        callRequestsRef.addChildEventListener(callRequestListener)
+    }
+
     override fun onStart() {
         super.onStart()
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -84,10 +139,19 @@ class ChatFragment : BaseFragment() {
         chatViewModel.listenForIncomingCalls(currentUserId) { roomId, callerUid, isVideoCall ->
             if (!callDialogShown) {
                 callDialogShown = true
-                showIncomingCallDialog(roomId, callerUid, isVideoCall)
+                val intent = Intent(requireContext(), IncomingCallActivity::class.java).apply {
+                    putExtra("roomId", roomId)
+                    putExtra("callerUid", callerUid)
+                    putExtra("isVideoCall", isVideoCall)
+                }
+                startActivity(intent)
             }
         }
+
+
     }
+
+
 
     private fun initChatUI() {
         adapter = ChatAdapter(chatViewModel.messages.value ?: emptyList(), auth.currentUser?.uid ?: "")
@@ -133,26 +197,18 @@ class ChatFragment : BaseFragment() {
                 chatViewModel.sendCallRequest(receiverId, isVideoCall, roomId, requireContext()) { success ->
                     if (success) {
                         firebaseClient.listenForCallStatus(roomId) { status ->
-                            when (status) {
-                                "rejected" -> {
-                                    Toast.makeText(requireContext(), "Çağrı reddedildi", Toast.LENGTH_SHORT).show()
-                                }
-                                "accepted" -> {
-                                    // opsiyonel: kabul ekranı gösterilebilir
-                                }
+                            if (status == "rejected") {
+                                Toast.makeText(requireContext(), "Çağrı reddedildi", Toast.LENGTH_SHORT).show()
                             }
                         }
 
-                        if (!CallActivity.isActive) {
-                            val intent = Intent(requireContext(), CallActivity::class.java).apply {
-                                putExtra("roomId", roomId)
-                                putExtra("isCaller", true)
-                                putExtra("callerUid", senderUid)
-                                putExtra("isVideoCall", true)
-                            }
-                            startActivity(intent)
+                        val intent = Intent(requireContext(), CallActivity::class.java).apply {
+                            putExtra("roomId", roomId)
+                            putExtra("callerUid", senderUid)
+                            putExtra("isCaller", true)
+                            putExtra("isVideoCall", isVideoCall)
                         }
-
+                        startActivity(intent)
                     } else {
                         Toast.makeText(requireContext(), "Çağrı gönderilemedi", Toast.LENGTH_SHORT).show()
                     }
@@ -164,25 +220,6 @@ class ChatFragment : BaseFragment() {
 
 
 
-    private fun showIncomingCallDialog(roomId: String, callerUid: String, isVideoCall: Boolean) {
-        AlertDialog.Builder(requireContext())
-            .setTitle("Incoming ${if (isVideoCall) "Video" else "Voice"} Call")
-            .setMessage("User $callerUid is calling you.")
-            .setPositiveButton("Accept") { _, _ ->
-                val intent = Intent(requireContext(), CallActivity::class.java).apply {
-                    putExtra("roomId", roomId)
-                    putExtra("callerUid", callerUid)
-                    putExtra("isVideoCall", isVideoCall)
-                    putExtra("isCaller", false)
-                }
-                startActivity(intent)
-            }
-            .setNegativeButton("Reject") { _, _ ->
-                firebaseClient.rejectCall(roomId)
-            }
-            .setCancelable(false)
-            .show()
-    }
 
 
 
@@ -221,8 +258,10 @@ class ChatFragment : BaseFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        callRequestsRef.removeEventListener(callRequestListener)
         _binding = null
     }
+
 
     override fun onResume() {
         super.onResume()

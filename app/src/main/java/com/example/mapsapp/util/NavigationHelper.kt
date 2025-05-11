@@ -7,15 +7,13 @@ import com.example.mapsapp.view.ui.HomeFragmentDirections
 
 object NavigationHelper {
 
-    fun navigateTo(fragment: Fragment, destination: String, receiverId: String? = null, receiverName: String? = null) {
+    fun navigateTo(fragment: Fragment, destination: String) {
         when (destination) {
             "Home" -> {
                 fragment.findNavController().navigate(R.id.homeFragment)
             }
             "Chat" -> {
-
                 fragment.findNavController().navigate(R.id.chatInterfaceFragment)
-
             }
             "Chat Bot" -> {
                 fragment.findNavController().navigate(R.id.chatBotActivity)

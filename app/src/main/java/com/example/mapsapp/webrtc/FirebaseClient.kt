@@ -1,6 +1,9 @@
 package com.example.mapsapp.webrtc
 
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
 class FirebaseClient {
 
@@ -50,4 +53,22 @@ class FirebaseClient {
                 onResult(snapshot.getValue(String::class.java))
             }
     }
+
+    fun removeCallRequest(receiverId: String, roomId: String, onComplete: (() -> Unit)? = null) {
+        dbRef.child("callRequests")
+            .child(receiverId)
+            .orderByChild("roomId")
+            .equalTo(roomId)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    snapshot.children.forEach { it.ref.removeValue() }
+                    onComplete?.invoke()
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    onComplete?.invoke()
+                }
+            })
+    }
+
 }
