@@ -23,8 +23,10 @@ import com.example.mapsapp.model.User
 import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatInterfaceViewModel
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -55,12 +57,25 @@ class ChatInterfaceFragment : BaseFragment() {
         setupFriendRequestButton()
         observeData()
 
+
+        chatInterfaceViewModel.resetInCallState()
+
         // Load friend requests and friends list
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
         if (currentUserId != null) {
             chatInterfaceViewModel.loadFriendRequests(currentUserId)
             chatInterfaceViewModel.fetchFriendsList(currentUserId)
         }
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null) {
+            FirebaseDatabase.getInstance().getReference("users")
+                .child(uid)
+                .child("inCall")
+                .setValue(false)
+        }
+
+        chatInterfaceViewModel.observeInCallStatuses()
+
     }
 
     private fun setupRecyclerView() {
@@ -99,10 +114,17 @@ class ChatInterfaceFragment : BaseFragment() {
     private fun observeData() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
+
                 launch {
-                    chatInterfaceViewModel.friendsList.collectLatest { friends ->
-                        Log.d("ChatInterfaceFragment", "Updated Friends List: ${friends.map { it.name }}")
-                        friendsAdapter.submitList(friends)
+                    combine(
+                        chatInterfaceViewModel.friendsList,
+                        chatInterfaceViewModel.inCallMap
+                    ) { friends, inCallMap ->
+                        friends.map { friend ->
+                            friend to (inCallMap[friend.uid] == true)
+                        }
+                    }.collectLatest { friendPairs ->
+                        friendsAdapter.submitList(friendPairs)
                     }
                 }
 
@@ -112,7 +134,7 @@ class ChatInterfaceFragment : BaseFragment() {
                             friendRequestsAdapter.updateRequests(requests)
 
                             if (requests.isEmpty()) {
-                                dialog.dismiss() // Liste boşsa dialogu kapat
+                                dialog.dismiss()
                             }
                         }
                         Log.d("ChatInterfaceFragment", "Updated Friend Requests: ${requests.map { it.name }}")
@@ -130,6 +152,7 @@ class ChatInterfaceFragment : BaseFragment() {
             }
         }
     }
+
 
     private fun showFriendRequestsDialog() {
         val bindingSheet = DialogFriendRequestsBinding.inflate(layoutInflater)

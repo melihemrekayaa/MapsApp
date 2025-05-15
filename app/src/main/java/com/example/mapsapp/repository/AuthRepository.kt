@@ -2,8 +2,13 @@ package com.example.mapsapp.repository
 
 import android.util.Log
 import com.example.mapsapp.model.User
+import com.example.mapsapp.webrtc.UserRTC
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.gson.Gson
 import kotlinx.coroutines.channels.awaitClose
@@ -168,11 +173,33 @@ class AuthRepository @Inject constructor(
         awaitClose { listener.remove() }
     }
 
+    fun getUsersInCall(): Flow<List<UserRTC>> = callbackFlow {
+        val ref = FirebaseDatabase.getInstance().getReference("users")
 
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val inCallList = snapshot.children.mapNotNull { userSnap ->
+                    val uid = userSnap.key ?: return@mapNotNull null
+                    val name = userSnap.child("displayName").getValue(String::class.java) ?: return@mapNotNull null
+                    val photoUrl = userSnap.child("photoUrl").getValue(String::class.java)
+                    val isInCall = userSnap.child("inCall").getValue(Boolean::class.java) ?: false
 
+                    if (isInCall) {
+                        UserRTC(uid, name, photoUrl, true)
+                    } else null
+                }
 
+                trySend(inCallList)
+            }
 
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
 
+        ref.addValueEventListener(listener)
+        awaitClose { ref.removeEventListener(listener) }
+    }
 
     fun loadFriendRequests(userUid: String): Flow<List<User>> = callbackFlow {
         val listener = firestore.collection("users")

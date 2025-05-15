@@ -1,5 +1,6 @@
 package com.example.mapsapp.webrtc
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.media.Ringtone
@@ -9,10 +10,12 @@ import android.util.Log
 import android.view.MotionEvent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.mapsapp.databinding.ActivityIncomingCallBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -27,8 +30,6 @@ class IncomingCallActivity : AppCompatActivity() {
     private var callerUid: String = ""
     private var isVideoCall: Boolean = true
 
-    private val firebaseDb = FirebaseDatabase.getInstance()
-
     @Inject
     lateinit var firebaseClient: FirebaseClient
 
@@ -36,6 +37,7 @@ class IncomingCallActivity : AppCompatActivity() {
         var isActive = false
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityIncomingCallBinding.inflate(layoutInflater)
@@ -103,17 +105,24 @@ class IncomingCallActivity : AppCompatActivity() {
         isActionTaken = true
 
         stopRingtoneAndVibration()
-        firebaseClient.acceptCall(roomId)
 
-        clearCallRequest {
-            val intent = Intent(this, CallActivity::class.java).apply {
-                putExtra("roomId", roomId)
-                putExtra("callerUid", callerUid)
-                putExtra("isCaller", false)
-                putExtra("isVideoCall", isVideoCall)
+        lifecycleScope.launch {
+            try {
+                firebaseClient.acceptCall(roomId)
+                firebaseClient.removeCallRequest(getCurrentUserId(), roomId)
+
+                val intent = Intent(this@IncomingCallActivity, CallActivity::class.java).apply {
+                    putExtra("roomId", roomId)
+                    putExtra("callerUid", callerUid)
+                    putExtra("isCaller", false)
+                    putExtra("isVideoCall", isVideoCall)
+                }
+                startActivity(intent)
+            } catch (e: Exception) {
+                Log.e("IncomingCall", "answerCall exception: ${e.message}")
+            } finally {
+                finish()
             }
-            startActivity(intent)
-            finish()
         }
     }
 
@@ -122,28 +131,35 @@ class IncomingCallActivity : AppCompatActivity() {
         isActionTaken = true
 
         stopRingtoneAndVibration()
-        firebaseClient.rejectCall(roomId)
-        firebaseClient.cancelCall(roomId)    // ← ekledik
 
-        clearCallRequest { finish() }
+        lifecycleScope.launch {
+            try {
+                // 1. Çağrıyı reddet → status: rejected
+                firebaseClient.rejectCall(roomId)
+
+                // 2. Çağrı verisini sil
+                firebaseClient.cancelCall(roomId)
+
+                // 3. Kullanıcının inCall durumunu sıfırla
+                val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+                firebaseClient.setUserInCall(uid, false)
+
+                // 4. Kendi callRequest'ini temizle
+                firebaseClient.removeCallRequest(uid, roomId)
+            } catch (e: Exception) {
+                Log.e("IncomingCall", "rejectCall exception: ${e.message}")
+            } finally {
+                finish()
+            }
+        }
     }
 
 
 
-    private fun clearCallRequest(onComplete: () -> Unit) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return onComplete()
-        firebaseDb.getReference("callRequests").child(uid)
-            .orderByChild("roomId").equalTo(roomId)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    snapshot.children.forEach { it.ref.removeValue() }
-                    onComplete()
-                }
-                override fun onCancelled(error: DatabaseError) = onComplete()
-            })
+
+    private fun getCurrentUserId(): String {
+        return FirebaseAuth.getInstance().currentUser?.uid ?: ""
     }
-
-
 
     override fun onDestroy() {
         super.onDestroy()

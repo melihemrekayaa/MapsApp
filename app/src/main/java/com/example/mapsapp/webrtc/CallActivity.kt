@@ -13,11 +13,16 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.mapsapp.MapsMainActivity
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.ActivityCallBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.webrtc.*
 
 class CallActivity : AppCompatActivity() {
@@ -31,6 +36,7 @@ class CallActivity : AppCompatActivity() {
 
 
     private val firebaseDatabase = FirebaseDatabase.getInstance().reference
+    private val firebaseClient = FirebaseClient()
 
     private lateinit var peerConnectionFactory: PeerConnectionFactory
     private var peerConnection: PeerConnection? = null
@@ -45,13 +51,7 @@ class CallActivity : AppCompatActivity() {
     private var videoSource: VideoSource? = null
 
     private var isCallEnded = false
-
-    private var audioSource: AudioSource? = null
     private lateinit var callEndListener: ValueEventListener
-
-
-
-
 
     companion object {
         var isActive: Boolean = false
@@ -414,17 +414,13 @@ class CallActivity : AppCompatActivity() {
         firebaseDatabase.child("callRequests").child(currentUid).removeValue()
         firebaseDatabase.child("callRequests").child(callerUid).removeValue()
 
-        // … medya kaynaklarını temizleyip finish() …
+        // 3. inCall durumunu sıfırla
+        FirebaseDatabase.getInstance().getReference("users")
+            .child(currentUid).child("inCall").setValue(false)
+
+        // 4. Activity'yi kapat
         finish()
     }
-
-
-
-
-
-
-
-
 
 
     override fun onStart() {
@@ -439,17 +435,20 @@ class CallActivity : AppCompatActivity() {
 
 
 
+    @OptIn(DelicateCoroutinesApi::class)
     override fun onDestroy() {
         super.onDestroy()
         isActive = false
 
-        // ✅ onDestroy sadece bayrağı kapatsın
+        // Coroutine ile inCall = false
+        GlobalScope.launch(Dispatchers.IO) {
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+            FirebaseDatabase.getInstance().getReference("users")
+                .child(uid).child("inCall").setValue(false)
+        }
+
         Log.d("CallActivity", "onDestroy çağrıldı.")
     }
-
-
-
-
 
 
 
