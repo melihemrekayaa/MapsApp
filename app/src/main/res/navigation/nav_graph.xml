@@ -45,9 +45,6 @@
             android:id="@+id/action_homeFragment_to_chatBotActivity"
             app:destination="@id/chatBotActivity" />
         <action
-            android:id="@+id/action_homeFragment_to_mapsActivity"
-            app:destination="@id/mapsActivity" />
-        <action
             android:id="@+id/action_homeFragment_to_loginFragment"
             app:destination="@id/loginFragment" />
         <action
@@ -56,7 +53,22 @@
         <action
             android:id="@+id/action_homeFragment_to_settingsFragment"
             app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_mapFragment2"
+            app:destination="@id/mapFragment2" />
     </fragment>
+
+    <!-- Maps Fragment -->
+    <fragment
+        android:id="@+id/mapFragment"
+        android:name="com.example.mapsapp.view.map.MapFragment"
+        tools:layout="@layout/fragment_map"
+        android:label="MapFragment">
+        <action
+            android:id="@+id/action_mapFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+    </fragment>
+
 
     <!-- Chat Fragment -->
     <fragment
@@ -115,20 +127,20 @@
             app:destination="@id/homeFragment" />
     </fragment>
 
-    <!-- Maps Activity -->
-    <activity
-        android:id="@+id/mapsActivity"
-        android:name="com.example.mapsapp.MapsActivity"
-        android:label="activity_maps"
-        tools:layout="@layout/activity_maps" />
-
     <!-- ChatBot Activity -->
     <activity
         android:id="@+id/chatBotActivity"
         android:name="com.example.mapsapp.view.chatbot.ChatBotActivity"
         android:label="activity_chat_bot"
         tools:layout="@layout/activity_chat_bot" />
-
+    <fragment
+        android:id="@+id/mapFragment2"
+        android:name="com.example.mapsapp.view.map.MapFragment"
+        android:label="MapFragment" >
+        <action
+            android:id="@+id/action_mapFragment2_to_homeFragment"
+            app:destination="@id/homeFragment" />
+    </fragment>
 
 
 </navigation>

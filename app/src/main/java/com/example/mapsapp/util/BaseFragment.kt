@@ -19,35 +19,7 @@ import com.google.firebase.database.FirebaseDatabase
 
 abstract class BaseFragment : Fragment() {
 
-    override fun onStart() {
-        super.onStart()
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        FirebaseDatabase.getInstance()
-            .getReference("callRequests")
-            .child(uid)
-            .addChildEventListener(object : ChildEventListener {
-                override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                    val roomId = snapshot.child("roomId").getValue(String::class.java) ?: return
-                    val callerUid = snapshot.child("callerUid").getValue(String::class.java) ?: return
-                    val isVideoCall = snapshot.child("isVideoCall").getValue(Boolean::class.java) ?: true
-
-                    snapshot.ref.removeValue() // 🔥 Sadece 1 kez tetiklenmesi için
-
-                    val intent = Intent(requireContext(), IncomingCallActivity::class.java).apply {
-                        putExtra("roomId", roomId)
-                        putExtra("callerUid", callerUid)
-                        putExtra("isVideoCall", isVideoCall)
-                    }
-                    startActivity(intent)
-                }
-
-                override fun onCancelled(error: DatabaseError) {}
-                override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
-                override fun onChildRemoved(snapshot: DataSnapshot) {}
-                override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
-            })
-    }
 
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
