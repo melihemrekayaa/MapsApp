@@ -5,6 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mapsapp.model.User
 import com.example.mapsapp.repository.AuthRepository
+import com.example.mapsapp.webrtc.UserRTC
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,16 +34,48 @@ class ChatInterfaceViewModel @Inject constructor(
     private val _operationStatus = MutableStateFlow<String?>(null)
     val operationStatus: StateFlow<String?> = _operationStatus.asStateFlow()
 
+    private val _inCallMap = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val inCallMap: StateFlow<Map<String, Boolean>> = _inCallMap.asStateFlow()
+
     fun fetchFriendsList(userId: String) {
         viewModelScope.launch {
             repository.getFriendsList(userId)
                 .catch { e -> Log.e("ChatInterfaceViewModel", "Error fetching friends: ${e.message}") }
                 .collectLatest { friends ->
-                    Log.d("ChatInterfaceViewModel", "Fetched friends: ${friends.map { it.name }}")
                     _friendsList.value = friends
                 }
         }
     }
+
+    fun observeInCallStatuses() {
+        viewModelScope.launch {
+            FirebaseDatabase.getInstance().getReference("users")
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        val updatedMap = snapshot.children.associate { snap ->
+                            val uid = snap.key ?: return@associate "" to false
+                            val inCall = snap.child("inCall").getValue(Boolean::class.java) ?: false
+                            uid to inCall
+                        }
+                        _inCallMap.value = updatedMap
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {}
+                })
+        }
+    }
+
+    fun resetInCallState() {
+        viewModelScope.launch {
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+            FirebaseDatabase.getInstance()
+                .getReference("users")
+                .child(uid)
+                .child("inCall")
+                .setValue(false)
+        }
+    }
+
 
     fun loadFriendRequests(userUid: String) {
         viewModelScope.launch {

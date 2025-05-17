@@ -1,17 +1,13 @@
 package com.example.mapsapp.view.ui
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.DividerItemDecoration
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mapsapp.adapter.CardAdapter
 import com.example.mapsapp.databinding.FragmentHomeBinding
 import com.example.mapsapp.repository.AuthRepository
@@ -20,12 +16,6 @@ import com.example.mapsapp.util.DataProvider
 import com.example.mapsapp.util.NavigationHelper
 import com.example.mapsapp.viewmodel.AuthViewModel
 import com.example.mapsapp.viewmodel.HomeViewModel
-import com.example.mapsapp.webrtc.CallActivity
-import com.google.firebase.database.ChildEventListener
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -34,24 +24,18 @@ class HomeFragment : BaseFragment() {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
+
     private val homeViewModel: HomeViewModel by viewModels()
     private val authViewModel: AuthViewModel by viewModels()
 
-
-
     @Inject
     lateinit var firebaseAuth: AuthRepository
-
-
-    private lateinit var currentUserId: String
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
-
-        currentUserId = firebaseAuth.getCurrentUser()?.uid ?: ""
 
         observeUserInfo()
         setupRecyclerView()
@@ -62,22 +46,18 @@ class HomeFragment : BaseFragment() {
 
     private fun observeUserInfo() {
         homeViewModel.user.observe(viewLifecycleOwner) { user ->
-            binding.welcomeMessage.text = "Welcome, ${user?.email}"
+            binding.welcomeMessage.text = "Welcome, ${user?.email ?: "User"}"
         }
     }
 
     private fun setupRecyclerView() {
         binding.recyclerView.apply {
-            layoutManager = GridLayoutManager(requireContext(), 2)
-            addItemDecoration(DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL))
+            layoutManager = LinearLayoutManager(requireContext())
             adapter = CardAdapter(DataProvider.getCardItems()) { cardItem ->
-                if (cardItem.title == "Chat") {
-                    NavigationHelper.navigateTo(this@HomeFragment, cardItem.title)
-                }
+                NavigationHelper.navigateTo(this@HomeFragment, cardItem.title)
             }
         }
     }
-
 
     private fun setupListeners() {
         binding.exitBtn.setOnClickListener {
@@ -103,10 +83,8 @@ class HomeFragment : BaseFragment() {
         alertDialog.show()
     }
 
-
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
 }
-

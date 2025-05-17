@@ -1,6 +1,5 @@
 package com.example.mapsapp.view.ui
 
-import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -9,6 +8,7 @@ import android.view.*
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mapsapp.R
@@ -18,16 +18,10 @@ import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatViewModel
 import com.example.mapsapp.webrtc.CallActivity
 import com.example.mapsapp.webrtc.FirebaseClient
-import com.example.mapsapp.webrtc.IncomingCallActivity
+import com.example.mapsapp.webrtc.IncomingCallActivity.Companion.isActive
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.ChildEventListener
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
-import com.google.firebase.firestore.ListenerRegistration
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -44,12 +38,6 @@ class ChatFragment : BaseFragment() {
     lateinit var firebaseClient: FirebaseClient
 
     private lateinit var toolbar: androidx.appcompat.widget.Toolbar
-    private var callDialogShown = false
-
-    private lateinit var callRequestsRef: DatabaseReference
-    private lateinit var callRequestListener: ChildEventListener
-
-
 
 
     override fun onCreateView(
@@ -87,71 +75,6 @@ class ChatFragment : BaseFragment() {
 
         return binding.root
     }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        // Tek seferlik listener referansları
-        callRequestsRef = FirebaseDatabase.getInstance()
-            .getReference("callRequests")
-            .child(currentUserId)
-
-        callRequestListener = object : ChildEventListener {
-            override fun onChildAdded(snapshot: DataSnapshot, prevName: String?) {
-                val roomId = snapshot.child("roomId").getValue(String::class.java) ?: return
-                val callerUid = snapshot.child("callerUid").getValue(String::class.java) ?: return
-                val isVideoCall = snapshot.child("isVideoCall").getValue(Boolean::class.java) ?: true
-
-                FirebaseDatabase.getInstance().getReference("calls")
-                    .child(roomId)
-                    .child("callEnded")
-                    .addListenerForSingleValueEvent(object : ValueEventListener {
-                        override fun onDataChange(endSnap: DataSnapshot) {
-                            val ended = endSnap.getValue(Boolean::class.java) ?: false
-                            if (!ended) {
-                                snapshot.ref.removeValue()
-                                val intent = Intent(requireContext(), IncomingCallActivity::class.java).apply {
-                                    putExtra("roomId", roomId)
-                                    putExtra("callerUid", callerUid)
-                                    putExtra("isVideoCall", isVideoCall)
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }.also { startActivity(it) }
-                                startActivity(intent)
-                            }
-                        }
-                        override fun onCancelled(error: DatabaseError) {}
-                    })
-            }
-            override fun onChildChanged(snapshot: DataSnapshot, prevName: String?) {}
-            override fun onChildRemoved(snapshot: DataSnapshot) {}
-            override fun onChildMoved(snapshot: DataSnapshot, prevName: String?) {}
-            override fun onCancelled(error: DatabaseError) {}
-        }
-
-        callRequestsRef.addChildEventListener(callRequestListener)
-    }
-
-    override fun onStart() {
-        super.onStart()
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
-        chatViewModel.listenForIncomingCalls(currentUserId) { roomId, callerUid, isVideoCall ->
-            if (!callDialogShown) {
-                callDialogShown = true
-                val intent = Intent(requireContext(), IncomingCallActivity::class.java).apply {
-                    putExtra("roomId", roomId)
-                    putExtra("callerUid", callerUid)
-                    putExtra("isVideoCall", isVideoCall)
-                }
-                startActivity(intent)
-            }
-        }
-
-
-    }
-
-
 
     private fun initChatUI() {
         adapter = ChatAdapter(chatViewModel.messages.value ?: emptyList(), auth.currentUser?.uid ?: "")
@@ -194,34 +117,44 @@ class ChatFragment : BaseFragment() {
                 val roomId = "room_${System.currentTimeMillis()}"
                 val senderUid = FirebaseAuth.getInstance().currentUser?.uid ?: return@let
 
-                chatViewModel.sendCallRequest(receiverId, isVideoCall, roomId, requireContext()) { success ->
-                    if (success) {
-                        firebaseClient.listenForCallStatus(roomId) { status ->
-                            if (status == "rejected") {
-                                Toast.makeText(requireContext(), "Çağrı reddedildi", Toast.LENGTH_SHORT).show()
+                lifecycleScope.launch {
+                    val inCall = firebaseClient.isUserInCall(receiverId)
+
+                    if (inCall) {
+                        Toast.makeText(requireContext(), "Kullanıcı şu anda başka bir görüşmede.", Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
+
+                    // 🔒 Kullanıcıya çağrı gönderilecek → inCall = true yap
+                    firebaseClient.setUserInCall(receiverId, true)
+
+                    chatViewModel.sendCallRequest(receiverId, isVideoCall, roomId) { success ->
+                        if (success) {
+                            lifecycleScope.launch {
+                                val status = firebaseClient.listenForCallStatus(roomId)
+                                if (status == "rejected") {
+                                    Toast.makeText(requireContext(), "Çağrı reddedildi", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+
+                            val intent = Intent(requireContext(), CallActivity::class.java).apply {
+                                putExtra("roomId", roomId)
+                                putExtra("callerUid", senderUid)
+                                putExtra("isCaller", true)
+                                putExtra("isVideoCall", isVideoCall)
+                            }
+                            startActivity(intent)
+                        } else {
+                            Toast.makeText(requireContext(), "Çağrı gönderilemedi", Toast.LENGTH_SHORT).show()
+                            lifecycleScope.launch {
+                                firebaseClient.setUserInCall(receiverId, false) // başarısızsa geri al
                             }
                         }
-
-                        val intent = Intent(requireContext(), CallActivity::class.java).apply {
-                            putExtra("roomId", roomId)
-                            putExtra("callerUid", senderUid)
-                            putExtra("isCaller", true)
-                            putExtra("isVideoCall", isVideoCall)
-                        }
-                        startActivity(intent)
-                    } else {
-                        Toast.makeText(requireContext(), "Çağrı gönderilemedi", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
         }
     }
-
-
-
-
-
-
 
 
     private fun getCameraAndMicPermission(onPermissionGranted: () -> Unit) {
@@ -258,14 +191,32 @@ class ChatFragment : BaseFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        callRequestsRef.removeEventListener(callRequestListener)
         _binding = null
+    }
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        isActive = false
+
+        lifecycleScope.launch {
+            val uid = FirebaseAuth.getInstance().currentUser?.uid
+            if (uid != null) {
+                try {
+                    firebaseClient.setUserInCall(uid, false)
+                    Log.d("CallActivity", "✅ inCall FALSE yazıldı: $uid")
+                } catch (e: Exception) {
+                    Log.e("CallActivity", "❌ inCall sıfırlanamadı: ${e.message}")
+                }
+            }
+        }
+
+        Log.d("CallActivity", "onDestroy çağrıldı.")
     }
 
 
     override fun onResume() {
         super.onResume()
-        callDialogShown = false
     }
 
     companion object {

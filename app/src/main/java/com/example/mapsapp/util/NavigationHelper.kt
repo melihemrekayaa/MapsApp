@@ -1,9 +1,10 @@
 package com.example.mapsapp.util
 
+import android.content.Intent
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.mapsapp.R
-import com.example.mapsapp.view.ui.HomeFragmentDirections
+import com.example.mapsapp.view.chatbot.ChatBotActivity
 
 object NavigationHelper {
 
@@ -16,13 +17,17 @@ object NavigationHelper {
                 fragment.findNavController().navigate(R.id.chatInterfaceFragment)
             }
             "Chat Bot" -> {
-                fragment.findNavController().navigate(R.id.chatBotActivity)
+                val intent = Intent(fragment.requireContext(), ChatBotActivity::class.java)
+                fragment.startActivity(intent)
             }
             "Maps" -> {
                 fragment.findNavController().navigate(R.id.mapFragment)
             }
             "Settings" -> {
                 fragment.findNavController().navigate(R.id.settingsFragment)
+            }
+            else -> {
+                // Log veya fallback
             }
         }
     }

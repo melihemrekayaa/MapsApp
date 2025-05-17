@@ -2,11 +2,18 @@ package com.example.mapsapp.repository
 
 import android.util.Log
 import com.example.mapsapp.model.User
+import com.example.mapsapp.webrtc.UserRTC
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.gson.Gson
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.channels.onFailure
+import kotlinx.coroutines.channels.onSuccess
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
@@ -134,45 +141,90 @@ class AuthRepository @Inject constructor(
     }
 
     fun getFriendsList(userId: String): Flow<List<User>> = callbackFlow {
+        Log.d("AuthRepo", "getFriendsList() called for userId=$userId")
         val userDocRef = firestore.collection("users").document(userId)
 
         val listener = userDocRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
+                Log.e("AuthRepo", "SnapshotListener error for $userId", error)
+                // toException() yerine direkt error kullanıyoruz
                 close(error)
                 return@addSnapshotListener
             }
 
             if (snapshot != null && snapshot.exists()) {
+                Log.d("AuthRepo", "Snapshot exists for $userId: ${snapshot.data}")
                 val friendsList = snapshot.get("friends") as? List<String> ?: emptyList()
+                Log.d("AuthRepo", "Fetched friends IDs for $userId: $friendsList")
 
                 if (friendsList.isEmpty()) {
+                    Log.d("AuthRepo", "No friends for $userId, emitting empty list")
                     trySend(emptyList())
                 } else {
                     val friends = mutableListOf<User>()
                     friendsList.forEach { friendId ->
+                        Log.d("AuthRepo", "Loading friend document for friendId=$friendId")
                         firestore.collection("users").document(friendId)
                             .get()
                             .addOnSuccessListener { friendSnapshot ->
                                 val friend = friendSnapshot.toObject(User::class.java)
-                                friend?.let {
-                                    friends.add(it)
-                                    trySend(friends.toList())
+                                if (friend != null) {
+                                    friends.add(friend)
+                                    Log.d("AuthRepo", "Friend fetched: $friend (total so far = ${friends.size})")
+                                    trySend(friends.toList()).onSuccess {
+                                        Log.d("AuthRepo", "Emitted list of size ${friends.size}")
+                                    }.onFailure { ex ->
+                                        Log.e("AuthRepo", "Failed to emit friends list", ex)
+                                    }
+                                } else {
+                                    Log.w("AuthRepo", "Friend snapshot was null for $friendId")
                                 }
                             }
-                            .addOnFailureListener { Log.e("AuthRepo", "Friend fetch error: ${it.message}") }
+                            .addOnFailureListener { ex ->
+                                Log.e("AuthRepo", "Error fetching friend doc for $friendId", ex)
+                            }
                     }
                 }
+            } else {
+                Log.w("AuthRepo", "Snapshot null or does not exist for $userId")
             }
         }
 
-        awaitClose { listener.remove() }
+        awaitClose {
+            Log.d("AuthRepo", "CallbackFlow for getFriendsList($userId) is closing, removing listener")
+            listener.remove()
+        }
     }
 
 
 
+    fun getUsersInCall(): Flow<List<UserRTC>> = callbackFlow {
+        val ref = FirebaseDatabase.getInstance().getReference("users")
 
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val inCallList = snapshot.children.mapNotNull { userSnap ->
+                    val uid = userSnap.key ?: return@mapNotNull null
+                    val name = userSnap.child("displayName").getValue(String::class.java) ?: return@mapNotNull null
+                    val photoUrl = userSnap.child("photoUrl").getValue(String::class.java)
+                    val isInCall = userSnap.child("inCall").getValue(Boolean::class.java) ?: false
 
+                    if (isInCall) {
+                        UserRTC(uid, name, photoUrl, true)
+                    } else null
+                }
 
+                trySend(inCallList)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+
+        ref.addValueEventListener(listener)
+        awaitClose { ref.removeEventListener(listener) }
+    }
 
     fun loadFriendRequests(userUid: String): Flow<List<User>> = callbackFlow {
         val listener = firestore.collection("users")

@@ -22,6 +22,8 @@
     <color name="card_background">#F5F5F5</color> <!-- Hafif gri ton -->
     <color name="primary_color">#6200EE</color> <!-- Primary color for selected state -->
     <color name="divider_color">#E0E0E0</color> <!-- Light gray for dividers -->
+    <color name="md_theme_outline">#79747E</color>
+
 
 
 

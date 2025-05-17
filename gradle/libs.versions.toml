@@ -18,10 +18,12 @@ espressoCore = "3.6.1"
 appcompat = "1.7.0"
 kotlinxCoroutinesCore = "1.7.3"
 loggingInterceptor = "4.9.1"
+mapsLocationcomponent = "11.12.0"
 material = "1.12.0"
 activity = "1.9.0"
 constraintlayout = "2.1.4"
 googleAndroidLibrariesMapsplatformSecretsGradlePlugin = "2.0.1"
+materialVersion = "1.11.0"
 okhttp = "4.12.0"
 permissionx = "1.6.1"
 playServicesAuth = "21.3.0"
@@ -35,6 +37,7 @@ swiperefreshlayout = "1.1.0"
 webrtc = "1.0.5"
 lifecycleProcess = "2.8.7"
 uiTestAndroid = "1.5.0"
+playServicesLocation = "21.3.0"
 
 [libraries]
 androidx-constraintlayout-v220 = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayoutVersion" }
@@ -56,9 +59,11 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
 logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "loggingInterceptor" }
+maps-locationcomponent = { module = "com.mapbox.plugin:maps-locationcomponent", version.ref = "mapsLocationcomponent" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+material-v1110 = { module = "com.google.android.material:material", version.ref = "materialVersion" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 permissionx = { module = "com.guolindev.permissionx:permissionx", version.ref = "permissionx" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
@@ -78,6 +83,7 @@ retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit
 webrtc = { module = "com.mesibo.api:webrtc", version.ref = "webrtc" }
 androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
 androidx-ui-test-android = { group = "androidx.compose.ui", name = "ui-test-android", version.ref = "uiTestAndroid" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

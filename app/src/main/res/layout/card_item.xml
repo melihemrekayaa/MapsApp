@@ -1,82 +1,87 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="160dp"
-    android:layout_margin="8dp"
-    android:background="@drawable/card_background">
+    android:layout_height="180dp"
+    android:layout_margin="12dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="4dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="@color/md_theme_outline"
+    android:clickable="true"
+    android:foreground="?attr/selectableItemBackground">
 
-    <!-- Blurlu Logo Arka Planı -->
-    <ImageView
-        android:id="@+id/backgroundLogo"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_gravity="center"
-        android:scaleType="fitCenter"
-        android:alpha="0.1"
-        app:tint="#FFFFFF" />
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
-    <!-- Cam Efekti Katmanı -->
-<View
-android:id="@+id/glassEffectLayer"
-android:layout_width="match_parent"
-android:layout_height="match_parent"
-android:background="#80000000" /> <!-- Yarı şeffaf beyaz katman -->
+        <!-- Arka Plan Logo -->
+        <ImageView
+            android:id="@+id/backgroundLogo"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_gravity="center"
+            android:scaleType="fitCenter"
+            android:alpha="0.08"
+            app:tint="?attr/colorOnSurface" />
 
-    <!-- Ön Yüz: Kart İçeriği (frontCard) -->
-<LinearLayout
-android:id="@+id/frontCard"
-android:layout_width="match_parent"
-android:layout_height="match_parent"
-android:orientation="vertical"
-android:gravity="center"
-android:padding="12dp">
+        <!-- Ön Yüz -->
+        <LinearLayout
+            android:id="@+id/frontCard"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="16dp">
 
-<!-- Dinamik Logo -->
-<ImageView
-    android:id="@+id/logoImage"
-    android:layout_width="32dp"
-    android:layout_height="32dp"
-    android:scaleType="fitCenter"
-    android:layout_marginBottom="8dp"
-    app:tint="#FFFFFF" />
+            <ImageView
+                android:id="@+id/logoImage"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:scaleType="centerInside"
+                android:layout_marginBottom="12dp"
+                app:tint="?attr/colorPrimary" />
 
-<TextView
-    android:id="@+id/cardTitle"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="Card Title"
-    android:textColor="#FFFFFF"
-    android:textSize="14sp"
-    android:gravity="center" />
-</LinearLayout>
+            <TextView
+                android:id="@+id/cardTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Card Title"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurface"
+                android:gravity="center" />
+        </LinearLayout>
 
+        <!-- Arka Yüz -->
+        <LinearLayout
+            android:id="@+id/backCard"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="16dp"
+            android:visibility="gone">
 
-<LinearLayout
-android:id="@+id/backCard"
-android:layout_width="match_parent"
-android:layout_height="match_parent"
-android:orientation="vertical"
-android:gravity="center"
-android:padding="16dp"
-android:background="@drawable/back_card_background"
-android:visibility="gone">
+            <TextView
+                android:id="@+id/backCardText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="This is the back side."
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="14sp"
+                android:gravity="center" />
 
-<TextView
-    android:id="@+id/backCardText"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="This is the back side description."
-    android:textColor="#FFFFFF"
-    android:textSize="14sp"
-    android:gravity="center" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/navigateButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Go"
+                android:textColor="@android:color/white"
+                android:backgroundTint="?attr/colorPrimary"
+                app:cornerRadius="16dp"
+                android:layout_marginTop="12dp" />
 
-    <Button
-        android:id="@+id/navigateButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Go to Page"
-        android:layout_marginTop="16dp"
-        android:backgroundTint="#6200EE"
-        android:textColor="#FFFFFF" />
-</LinearLayout>
+        </LinearLayout>
+
     </FrameLayout>
+</com.google.android.material.card.MaterialCardView>

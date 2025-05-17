@@ -1,6 +1,7 @@
 package com.example.mapsapp.view.ui.components
 
 import android.content.Context
+import android.content.Intent
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.widget.FrameLayout
@@ -26,7 +27,7 @@ class CustomBottomNavView @JvmOverloads constructor(
             navigateIfNotOn(R.id.homeFragment, "Home")
         }
         binding.mapsButton.setOnClickListener {
-            navigateIfNotOn(R.id.mapsActivity, "Maps")
+            navigateIfNotOn(R.id.mapFragment, "Maps") // ✅ navigation_graph içindeki ID
         }
         binding.chatButton.setOnClickListener {
             navigateIfNotOn(R.id.chatInterfaceFragment, "Chat")
@@ -47,4 +48,6 @@ class CustomBottomNavView @JvmOverloads constructor(
             }
         }
     }
+
+
 }

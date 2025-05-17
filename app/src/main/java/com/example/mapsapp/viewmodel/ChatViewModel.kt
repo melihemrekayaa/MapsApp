@@ -4,14 +4,15 @@ import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.mapsapp.model.Message
 import com.example.mapsapp.webrtc.FirebaseClient
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -25,11 +26,6 @@ class ChatViewModel @Inject constructor(
     val messages: LiveData<List<Message>> get() = _messages
 
     private var chatListener: ListenerRegistration? = null
-
-    private var isCallActive = false  // ✅ Ekran sadece bir kez açılsın
-    private var incomingCallRef: DatabaseReference? = null
-    private var incomingCallListener: ChildEventListener? = null
-
 
     fun listenForMessages(receiverId: String) {
         val currentUserId = auth.currentUser?.uid ?: return
@@ -53,43 +49,6 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun listenForIncomingCalls(userId: String, onCall: (roomId: String, callerUid: String, isVideoCall: Boolean) -> Unit) {
-        val ref = FirebaseDatabase.getInstance().getReference("callRequests").child(userId)
-
-        ref.addChildEventListener(object : ChildEventListener {
-            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                val roomId = snapshot.child("roomId").getValue(String::class.java) ?: return
-                val callerUid = snapshot.child("callerUid").getValue(String::class.java) ?: return
-                val isVideoCall = snapshot.child("isVideoCall").getValue(Boolean::class.java) ?: true
-
-                val callsRef = FirebaseDatabase.getInstance().getReference("calls").child(roomId)
-
-                callsRef.child("callEnded").addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(endSnapshot: DataSnapshot) {
-                        val callEnded = endSnapshot.getValue(Boolean::class.java) ?: false
-                        if (!callEnded) {
-                            // 👇 Çağrıyı yansıtmadan önce callRequest’i temizle
-                            firebaseClient.removeCallRequest(userId, roomId) {
-                                onCall(roomId, callerUid, isVideoCall)
-                            }
-                        }
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {}
-                })
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
-            override fun onChildRemoved(snapshot: DataSnapshot) {}
-            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
-        })
-    }
-
-
-
-
-
     fun sendMessage(receiverId: String, messageText: String) {
         if (messageText.isNotEmpty()) {
             val message = Message(
@@ -106,42 +65,43 @@ class ChatViewModel @Inject constructor(
         receiverId: String,
         isVideoCall: Boolean,
         roomId: String,
-        context: Context,
-        onComplete: (Boolean) -> Unit
+        onResult: (Boolean) -> Unit
     ) {
-        val senderUid = auth.currentUser?.uid ?: return
-        firebaseClient.sendCallRequest(
-            receiverId = receiverId,
-            roomId = roomId,
-            isVideoCall = isVideoCall,
-            senderUid = senderUid,
-            onComplete = onComplete
-        )
+        viewModelScope.launch {
+            val senderUid = auth.currentUser?.uid ?: return@launch
+            val success = firebaseClient.sendCallRequest(
+                receiverId = receiverId,
+                roomId = roomId,
+                isVideoCall = isVideoCall,
+                senderUid = senderUid
+            )
+            onResult(success)
+        }
     }
 
     fun rejectIncomingCall(roomId: String) {
-        firebaseClient.rejectCall(roomId)
+        viewModelScope.launch {
+            firebaseClient.rejectCall(roomId)
+        }
     }
 
     fun cancelOutgoingCall(roomId: String) {
-        firebaseClient.cancelCall(roomId)
+        viewModelScope.launch {
+            firebaseClient.cancelCall(roomId)
+        }
     }
 
     fun clearCall(roomId: String) {
-        firebaseClient.cancelCall(roomId)
-        val uid = auth.currentUser?.uid ?: return
-        firebaseClient.removeCallRequest(uid, roomId)
+        viewModelScope.launch {
+            val uid = auth.currentUser?.uid ?: return@launch
+            firebaseClient.cancelCall(roomId)
+            firebaseClient.removeCallRequest(uid, roomId)
+        }
     }
-
-
 
     override fun onCleared() {
         super.onCleared()
         chatListener?.remove()
-
-        incomingCallRef?.removeEventListener(incomingCallListener!!)
-        incomingCallRef = null
-        incomingCallListener = null
     }
 
 }

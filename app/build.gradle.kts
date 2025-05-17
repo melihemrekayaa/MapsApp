@@ -95,6 +95,13 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.recyclerview)
 
+    implementation (libs.material.v1110)
+    implementation ("com.mapbox.maps:android:11.12.0")
+    implementation (libs.maps.locationcomponent)
+
+
+
+
     implementation (platform(libs.firebase.bom))
     implementation (libs.firebase.database.ktx)
     implementation (libs.gson)
@@ -109,6 +116,7 @@ dependencies {
 
     implementation (libs.play.services.auth)
     implementation(libs.androidx.ui.test.android)
+    implementation(libs.play.services.location)
 
 
     // Dependencies to test
