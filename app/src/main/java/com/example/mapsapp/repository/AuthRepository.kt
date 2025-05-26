@@ -3,6 +3,8 @@ package com.example.mapsapp.repository
 import android.util.Log
 import com.example.mapsapp.model.User
 import com.example.mapsapp.webrtc.UserRTC
+import com.google.android.gms.tasks.Task
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.DataSnapshot
@@ -11,6 +13,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.gson.Gson
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.channels.onSuccess
@@ -140,61 +143,89 @@ class AuthRepository @Inject constructor(
             .update("isOnline", false)
     }
 
-    fun getFriendsList(userId: String): Flow<List<User>> = callbackFlow {
-        Log.d("AuthRepo", "getFriendsList() called for userId=$userId")
+    fun getFriendsListRealtime(userId: String): Flow<List<User>> = callbackFlow {
         val userDocRef = firestore.collection("users").document(userId)
+        val realtimeDb = FirebaseDatabase.getInstance().getReference("usersOnlineStatus")
 
-        val listener = userDocRef.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                Log.e("AuthRepo", "SnapshotListener error for $userId", error)
-                // toException() yerine direkt error kullanıyoruz
-                close(error)
+        val liveFriendsMap = mutableMapOf<String, User>()
+        val lastSeenListeners = mutableMapOf<String, ValueEventListener>()
+
+        val firestoreListener = userDocRef.addSnapshotListener { snapshot, error ->
+            if (error != null || snapshot == null || !snapshot.exists()) {
+                Log.e("RepoRealtime", "Snapshot error: ${error?.message}")
+                cancel("Snapshot error", error)
                 return@addSnapshotListener
             }
 
-            if (snapshot != null && snapshot.exists()) {
-                Log.d("AuthRepo", "Snapshot exists for $userId: ${snapshot.data}")
-                val friendsList = snapshot.get("friends") as? List<String> ?: emptyList()
-                Log.d("AuthRepo", "Fetched friends IDs for $userId: $friendsList")
+            val friendsList = snapshot.get("friends") as? List<String> ?: emptyList()
+            Log.d("RepoRealtime", "Fetched ${friendsList.size} friends from Firestore")
 
-                if (friendsList.isEmpty()) {
-                    Log.d("AuthRepo", "No friends for $userId, emitting empty list")
-                    trySend(emptyList())
-                } else {
-                    val friends = mutableListOf<User>()
-                    friendsList.forEach { friendId ->
-                        Log.d("AuthRepo", "Loading friend document for friendId=$friendId")
-                        firestore.collection("users").document(friendId)
-                            .get()
-                            .addOnSuccessListener { friendSnapshot ->
-                                val friend = friendSnapshot.toObject(User::class.java)
-                                if (friend != null) {
-                                    friends.add(friend)
-                                    Log.d("AuthRepo", "Friend fetched: $friend (total so far = ${friends.size})")
-                                    trySend(friends.toList()).onSuccess {
-                                        Log.d("AuthRepo", "Emitted list of size ${friends.size}")
-                                    }.onFailure { ex ->
-                                        Log.e("AuthRepo", "Failed to emit friends list", ex)
-                                    }
-                                } else {
-                                    Log.w("AuthRepo", "Friend snapshot was null for $friendId")
+            if (friendsList.isEmpty()) {
+                trySend(emptyList()).onFailure {
+                    Log.e("RepoRealtime", "Snapshot error: ${error?.message}")
+                    cancel("Send failed", it)
+                }
+                return@addSnapshotListener
+            }
+
+            // 🔄 Clear existing listeners
+            lastSeenListeners.forEach { (uid, listener) ->
+                realtimeDb.child(uid).removeEventListener(listener)
+            }
+            lastSeenListeners.clear()
+            liveFriendsMap.clear()
+
+            friendsList.forEach { friendId ->
+                firestore.collection("users").document(friendId)
+                    .addSnapshotListener { friendSnap, _ ->
+                        val user = friendSnap?.toObject(User::class.java)
+                        if (user == null) {
+                            Log.w("RepoRealtime", "User null for friendId=$friendId")
+                            return@addSnapshotListener
+                        }
+
+                        Log.d("RepoRealtime", "User fetched from Firestore: ${user.name} (${user.uid})")
+
+                        val listener = object : ValueEventListener {
+                            override fun onDataChange(snapshot: DataSnapshot) {
+                                val lastSeen = snapshot.child("lastSeen").getValue(Long::class.java)
+                                Log.d("RepoRealtime", "Realtime lastSeen for ${user.name} ($friendId): $lastSeen")
+
+                                val fullUser = user.copy(lastSeenTimestamp = lastSeen)
+                                liveFriendsMap[friendId] = fullUser
+
+                                trySend(liveFriendsMap.values.toList()).onFailure {
+                                    Log.e("RepoRealtime", "Realtime DB error for $friendId: ${error?.message}")
+                                    cancel("Send failed", it)
                                 }
                             }
-                            .addOnFailureListener { ex ->
-                                Log.e("AuthRepo", "Error fetching friend doc for $friendId", ex)
+
+                            override fun onCancelled(error: DatabaseError) {
+                                Log.e("RepoRealtime", "Realtime DB error for $friendId: ${error.message}")
                             }
+                        }
+
+                        realtimeDb.child(friendId).addValueEventListener(listener)
+                        lastSeenListeners[friendId] = listener
                     }
-                }
-            } else {
-                Log.w("AuthRepo", "Snapshot null or does not exist for $userId")
             }
         }
 
         awaitClose {
-            Log.d("AuthRepo", "CallbackFlow for getFriendsList($userId) is closing, removing listener")
-            listener.remove()
+            Log.d("RepoRealtime", "Closing getFriendsListRealtime, removing all listeners")
+            firestoreListener.remove()
+            lastSeenListeners.forEach { (uid, listener) ->
+                realtimeDb.child(uid).removeEventListener(listener)
+            }
         }
     }
+
+
+
+
+
+
+
 
 
 
@@ -327,6 +358,45 @@ class AuthRepository @Inject constructor(
                 Log.e("AuthRepository", "Failed to remove friend request: ${e.message}")
             }
     }
+
+    suspend fun reauthenticateAndChangeEmail(currentPassword: String, newEmail: String): Result<Unit> {
+        val user = auth.currentUser ?: return Result.failure(Exception("User not logged in"))
+
+        return try {
+            val credential = EmailAuthProvider.getCredential(user.email ?: "", currentPassword)
+            user.reauthenticate(credential).await()
+
+            user.updateEmail(newEmail).await()
+
+            // Firestore'daki email bilgisini de güncelle
+            firestore.collection("users")
+                .document(user.uid)
+                .update("email", newEmail)
+                .await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun reauthenticateAndChangePassword(currentPassword: String, newPassword: String): Result<Unit> {
+        val user = auth.currentUser ?: return Result.failure(Exception("User not logged in"))
+
+        return try {
+            val credential = EmailAuthProvider.getCredential(user.email ?: "", currentPassword)
+            user.reauthenticate(credential).await()
+
+            user.updatePassword(newPassword).await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+
+
 
 
 

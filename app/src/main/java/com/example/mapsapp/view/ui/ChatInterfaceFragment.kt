@@ -26,7 +26,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -35,10 +34,12 @@ class ChatInterfaceFragment : BaseFragment() {
     private var _binding: FragmentChatInterfaceBinding? = null
     private val binding get() = _binding!!
     private val chatInterfaceViewModel: ChatInterfaceViewModel by viewModels()
+
     private lateinit var friendsAdapter: FriendsAdapter
     private lateinit var friendRequestsAdapter: FriendRequestsAdapter
+    private lateinit var dialog: Dialog
 
-    private lateinit var dialog : Dialog
+    private var currentFriendList: List<Triple<User, Boolean, Boolean>> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -53,94 +54,59 @@ class ChatInterfaceFragment : BaseFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupRecyclerView()
-        setupFabButton()
-        setupFriendRequestButton()
-        observeData()
-
+        setupSearchView()
+        observeViewModel()
 
         chatInterfaceViewModel.resetInCallState()
 
-        // Load friend requests and friends list
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-        if (currentUserId != null) {
-            chatInterfaceViewModel.loadFriendRequests(currentUserId)
-            chatInterfaceViewModel.fetchFriendsList(currentUserId)
-        }
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
-        if (uid != null) {
-            FirebaseDatabase.getInstance().getReference("users")
-                .child(uid)
-                .child("inCall")
-                .setValue(false)
-        }
-
-        chatInterfaceViewModel.observeInCallStatuses()
-
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        chatInterfaceViewModel.loadFriendRequests(currentUserId)
     }
 
     private fun setupRecyclerView() {
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
-
         friendsAdapter = FriendsAdapter(
-            onFriendClick = { friend -> navigateToChat(friend)},
+            onFriendClick = { friend -> navigateToChat(friend) },
             onRemoveClick = { friend -> showRemoveFriendDialog(friend) }
-
         )
         binding.recyclerView.adapter = friendsAdapter
     }
 
-    private fun navigateToChat(friend: User) {
-        val bundle = Bundle()
-        bundle.putString("receiverId", friend.uid)
-        bundle.putString("receiverName", friend.name)
-
-        findNavController().navigate(R.id.action_chatInterfaceFragment_to_chatFragment,bundle)
+    private fun setupSearchView() {
+        binding.searchView.setOnQueryTextListener(object : androidx.appcompat.widget.SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean = true
+            override fun onQueryTextChange(newText: String?): Boolean {
+                filterAndSubmitList(newText.orEmpty().trim())
+                return true
+            }
+        })
     }
 
-
-
-    private fun setupFabButton() {
-        binding.fabAddFriend.setOnClickListener {
-            findNavController().navigate(R.id.action_chatInterfaceFragment_to_addFriendsFragment)
+    private fun filterAndSubmitList(query: String) {
+        val filtered = if (query.isBlank()) currentFriendList
+        else currentFriendList.filter { (user, _, _) ->
+            user.name.contains(query, ignoreCase = true)
         }
+        friendsAdapter.submitList(filtered)
     }
 
-    private fun setupFriendRequestButton() {
-        binding.requestButton.setOnClickListener {
-            showFriendRequestsDialog()
-        }
-    }
-
-    private fun observeData() {
+    private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-
                 launch {
-                    combine(
-                        chatInterfaceViewModel.friendsList,
-                        chatInterfaceViewModel.inCallMap
-                    ) { friends, inCallMap ->
-                        friends.map { friend ->
-                            friend to (inCallMap[friend.uid] == true)
-                        }
-                    }.collectLatest { friendPairs ->
-                        friendsAdapter.submitList(friendPairs)
+                    chatInterfaceViewModel.friendsWithFullStatus.collectLatest { list ->
+                        currentFriendList = list
+                        filterAndSubmitList(binding.searchView.query?.toString()?.trim().orEmpty())
                     }
                 }
-
                 launch {
                     chatInterfaceViewModel.friendRequests.collectLatest { requests ->
                         if (::friendRequestsAdapter.isInitialized) {
                             friendRequestsAdapter.updateRequests(requests)
-
-                            if (requests.isEmpty()) {
-                                dialog.dismiss()
-                            }
+                            if (requests.isEmpty()) dialog.dismiss()
                         }
-                        Log.d("ChatInterfaceFragment", "Updated Friend Requests: ${requests.map { it.name }}")
                     }
                 }
-
                 launch {
                     chatInterfaceViewModel.operationStatus.collectLatest { status ->
                         status?.let {
@@ -153,27 +119,14 @@ class ChatInterfaceFragment : BaseFragment() {
         }
     }
 
-
-    private fun showFriendRequestsDialog() {
-        val bindingSheet = DialogFriendRequestsBinding.inflate(layoutInflater)
-        dialog.setContentView(bindingSheet.root)
-
-        friendRequestsAdapter = FriendRequestsAdapter(chatInterfaceViewModel.friendRequests.value) { user ->
-            val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-            if (currentUserId != null) {
-                chatInterfaceViewModel.acceptFriendRequest(currentUserId, user.uid)
-                chatInterfaceViewModel.removeFriendRequest(currentUserId, user.uid) // UI'den de kaldır
-                chatInterfaceViewModel.removeFriendRequest(user.uid, currentUserId) // Karşı taraftan da kaldır
-                dialog.dismiss()
+    private fun navigateToChat(friend: User) {
+        findNavController().navigate(
+            R.id.action_chatInterfaceFragment_to_chatFragment,
+            Bundle().apply {
+                putString("receiverId", friend.uid)
+                putString("receiverName", friend.name)
             }
-        }
-
-        bindingSheet.recyclerView.apply {
-            layoutManager = LinearLayoutManager(requireContext())
-            adapter = friendRequestsAdapter
-        }
-
-        dialog.show()
+        )
     }
 
     private fun showRemoveFriendDialog(friend: User) {
@@ -181,12 +134,12 @@ class ChatInterfaceFragment : BaseFragment() {
             .setTitle("Remove Friend")
             .setMessage("Are you sure you want to remove ${friend.name}?")
             .setPositiveButton("Yes") { dialog, _ ->
-                chatInterfaceViewModel.removeFriend(FirebaseAuth.getInstance().currentUser?.uid ?: "", friend.uid)
+                FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+                    chatInterfaceViewModel.removeFriend(uid, friend.uid)
+                }
                 dialog.dismiss()
             }
-            .setNegativeButton("Cancel") { dialog, _ ->
-                dialog.dismiss()
-            }
+            .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
             .show()
     }
 
@@ -198,7 +151,5 @@ class ChatInterfaceFragment : BaseFragment() {
         super.onDestroyView()
         _binding = null
     }
-
-
 }
 

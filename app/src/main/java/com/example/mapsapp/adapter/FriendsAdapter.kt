@@ -1,9 +1,10 @@
 package com.example.mapsapp.adapter
 
+import android.graphics.BitmapFactory
+import android.util.Base64
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
@@ -15,7 +16,7 @@ import com.example.mapsapp.model.User
 class FriendsAdapter(
     private val onFriendClick: (User) -> Unit,
     private val onRemoveClick: (User) -> Unit
-) : ListAdapter<Pair<User, Boolean>, FriendsAdapter.FriendViewHolder>(DiffCallback) {
+) : ListAdapter<Triple<User, Boolean, Boolean>, FriendsAdapter.FriendViewHolder>(DiffCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FriendViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -29,38 +30,73 @@ class FriendsAdapter(
 
     inner class FriendViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val friendName: TextView = itemView.findViewById(R.id.friendName)
+        private val friendStatus: TextView = itemView.findViewById(R.id.friendStatus)
         private val friendStatusIcon: ImageView = itemView.findViewById(R.id.friendStatusIcon)
-        private val inCallLabel: TextView = itemView.findViewById(R.id.inCallLabel)
-        private val removeButton: ImageButton = itemView.findViewById(R.id.removeFriendButton)
+        private val profileImage: ImageView = itemView.findViewById(R.id.profileImage)
 
-        fun bind(item: Pair<User, Boolean>) {
+        fun bind(item: Triple<User, Boolean, Boolean>) {
             val user = item.first
-            val isInCall = item.second
+            val isOnline = item.second
+            val isInCall = item.third
 
             friendName.text = user.name
-            friendStatusIcon.setImageResource(
-                if (user.isOnline) R.drawable.circle_green else R.drawable.circle_red
-            )
 
-            inCallLabel.visibility = if (isInCall) View.VISIBLE else View.GONE
+            val lastSeenText = user.lastSeenTimestamp?.let {
+                val diff = System.currentTimeMillis() - it
+                val minutes = (diff / 1000 / 60).toInt()
+                if (minutes < 60) "Last seen ${minutes} min ago"
+                else "Last seen ${minutes / 60} h ago"
+            } ?: "Unknown"
+
+            // Durum metni
+            friendStatus.text = when {
+                isInCall -> "In Call"
+                isOnline -> "" // Online ise yazı göstermiyoruz
+                else -> lastSeenText
+            }
+
+            // Durum ikonu
+            val statusDrawable = when {
+                isInCall -> R.drawable.circle_red
+                isOnline -> R.drawable.circle_green
+                else -> R.drawable.circle_gray
+            }
+            friendStatusIcon.setImageResource(statusDrawable)
+
+            // Base64 profil fotoğrafı gösterimi
+            user.photoBase64?.let { base64 ->
+                try {
+                    val cleanBase64 = base64.substringAfter(",", base64)
+                    val imageBytes = Base64.decode(cleanBase64, Base64.DEFAULT)
+                    val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                    profileImage.setImageBitmap(bitmap)
+                } catch (e: Exception) {
+                    profileImage.setImageResource(R.drawable.ic_profile_placeholder)
+                }
+            } ?: run {
+                profileImage.setImageResource(R.drawable.ic_profile_placeholder)
+            }
 
             itemView.setOnClickListener { onFriendClick(user) }
-            removeButton.setOnClickListener { onRemoveClick(user) }
         }
+
+
+
+
     }
 
     companion object {
-        private val DiffCallback = object : DiffUtil.ItemCallback<Pair<User, Boolean>>() {
-            override fun areItemsTheSame(oldItem: Pair<User, Boolean>, newItem: Pair<User, Boolean>): Boolean {
-                return oldItem.first.uid == newItem.first.uid
-            }
+        private val DiffCallback = object : DiffUtil.ItemCallback<Triple<User, Boolean, Boolean>>() {
+            override fun areItemsTheSame(
+                oldItem: Triple<User, Boolean, Boolean>,
+                newItem: Triple<User, Boolean, Boolean>
+            ): Boolean = oldItem.first.uid == newItem.first.uid
 
-            override fun areContentsTheSame(oldItem: Pair<User, Boolean>, newItem: Pair<User, Boolean>): Boolean {
-                return oldItem == newItem
-            }
+            override fun areContentsTheSame(
+                oldItem: Triple<User, Boolean, Boolean>,
+                newItem: Triple<User, Boolean, Boolean>
+            ): Boolean = oldItem == newItem
         }
     }
 }
-
-
 

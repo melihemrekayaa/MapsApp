@@ -1,156 +1,173 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="80dp"
-    android:background="@color/white"
-    android:elevation="10dp"
-    android:padding="5dp">
+    android:layout_height="72dp"
+    android:layout_margin="12dp"
+    app:cardCornerRadius="32dp"
+    app:cardElevation="8dp"
+    android:backgroundTint="@android:color/white"
+    app:cardBackgroundColor="@android:color/white">
 
     <LinearLayout
-        android:id="@+id/bottomNavContainer"
+        android:id="@+id/navContainer"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
+        android:layout_height="match_parent"
         android:orientation="horizontal"
         android:gravity="center"
-        android:paddingBottom="8dp"
-        app:layout_constraintBottom_toBottomOf="parent">
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp">
 
-        <!-- Home Button -->
+        <!-- HOME -->
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:clickable="true"
-            android:focusable="true"
             android:id="@+id/homeButton"
-            android:padding="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless">
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingHorizontal="6dp"
+            android:background="@drawable/bg_selected_nav_item"
+            android:clickable="true"
+            android:focusable="true">
 
             <ImageView
+                android:id="@+id/homeIcon"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@drawable/home"
-                app:tint="@color/nav_item_color" />
+                android:src="@drawable/ic_home"
+                app:tint="@color/nav_selected" />
 
             <TextView
+                android:id="@+id/homeLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Home"
+                android:layout_marginStart="6dp"
                 android:textSize="14sp"
-                android:textColor="@color/nav_item_color"/>
+                android:textColor="@color/nav_selected"
+                android:visibility="visible" />
         </LinearLayout>
 
-        <!-- Maps Button -->
+        <!-- MAPS -->
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:clickable="true"
-            android:focusable="true"
             android:id="@+id/mapsButton"
-            android:padding="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless">
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="6dp"
+            android:clickable="true"
+            android:focusable="true">
 
             <ImageView
+                android:id="@+id/mapsIcon"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/maps"
-                app:tint="@color/nav_item_color" />
+                app:tint="@color/nav_unselected" />
 
             <TextView
+                android:id="@+id/mapsLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Maps"
+                android:layout_marginStart="6dp"
                 android:textSize="14sp"
-                android:textColor="@color/nav_item_color"/>
+                android:textColor="@color/nav_selected"
+                android:visibility="gone" />
         </LinearLayout>
 
-        <!-- Chat Button (Floating) -->
+        <!-- CHAT -->
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:clickable="true"
-            android:focusable="true"
             android:id="@+id/chatButton"
-            android:padding="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless">
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="6dp"
+            android:clickable="true"
+            android:focusable="true">
 
             <ImageView
+                android:id="@+id/chatIcon"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/chat"
-                app:tint="@color/nav_item_color" />
+                app:tint="@color/nav_unselected" />
 
             <TextView
+                android:id="@+id/chatLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Chat"
+                android:layout_marginStart="6dp"
                 android:textSize="14sp"
-                android:textColor="@color/nav_item_color"/>
+                android:textColor="@color/nav_selected"
+                android:visibility="gone" />
         </LinearLayout>
-        <!-- ChatBot Button -->
+
+        <!-- BOT -->
         <LinearLayout
+            android:id="@+id/botButton"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:orientation="vertical"
             android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="6dp"
             android:clickable="true"
-            android:focusable="true"
-            android:id="@+id/chatBotButton"
-            android:padding="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless">
+            android:focusable="true">
 
             <ImageView
+                android:id="@+id/botIcon"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/chatbot"
-                app:tint="@color/nav_item_color" />
+                app:tint="@color/nav_unselected" />
 
             <TextView
+                android:id="@+id/botLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Bot"
+                android:layout_marginStart="6dp"
                 android:textSize="14sp"
-                android:textColor="@color/nav_item_color"/>
+                android:textColor="@color/nav_selected"
+                android:visibility="gone" />
         </LinearLayout>
 
-        <!-- Settings Button -->
+        <!-- SETTINGS -->
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:clickable="true"
-            android:focusable="true"
             android:id="@+id/settingsButton"
-            android:padding="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless">
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="6dp"
+            android:clickable="true"
+            android:focusable="true">
 
             <ImageView
+                android:id="@+id/settingsIcon"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/permissionx_ic_setting"
-                app:tint="@color/nav_item_color" />
+                app:tint="@color/nav_unselected" />
 
             <TextView
+                android:id="@+id/settingsLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Settings"
+                android:layout_marginStart="6dp"
                 android:textSize="14sp"
-                android:textColor="@color/nav_item_color"/>
+                android:textColor="@color/nav_selected"
+                android:visibility="gone" />
         </LinearLayout>
 
     </LinearLayout>
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.cardview.widget.CardView>

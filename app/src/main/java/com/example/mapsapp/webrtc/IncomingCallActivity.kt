@@ -134,18 +134,14 @@ class IncomingCallActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                // 1. Çağrıyı reddet → status: rejected
-                firebaseClient.rejectCall(roomId)
+                val uid = getCurrentUserId()
 
-                // 2. Çağrı verisini sil
-                firebaseClient.cancelCall(roomId)
+                firebaseClient.rejectCall(roomId)                   // status = "rejected"
+                firebaseClient.cancelCall(roomId)                   // calls/{roomId} kaldır
+                firebaseClient.setUserInCall(uid, false)            // inCall = false
+                firebaseClient.removeCallRequest(uid, roomId)       // callRequests/{uid} kaldır
+                firebaseClient.removeCallRequest(callerUid, roomId) // arayanın callRequest'i de temizle (yeni eklendi)
 
-                // 3. Kullanıcının inCall durumunu sıfırla
-                val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
-                firebaseClient.setUserInCall(uid, false)
-
-                // 4. Kendi callRequest'ini temizle
-                firebaseClient.removeCallRequest(uid, roomId)
             } catch (e: Exception) {
                 Log.e("IncomingCall", "rejectCall exception: ${e.message}")
             } finally {

@@ -2,15 +2,12 @@ package com.example.mapsapp.webrtc
 
 import android.content.Context
 import android.content.Intent
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import com.example.mapsapp.webrtc.utils.awaitRemoveValue
 import com.example.mapsapp.webrtc.utils.awaitSingle
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.*
-import kotlin.system.measureTimeMillis
 
 object CallObserver {
 
@@ -31,7 +28,6 @@ object CallObserver {
             .getReference("callRequests")
             .child(currentUserId!!)
 
-        // Coroutine ile sürekli dinleme
         callJob = coroutineScope.launch {
             while (isActive) {
                 try {
@@ -54,12 +50,14 @@ object CallObserver {
                     }
                     lastCallTimestamps[roomId] = now
 
+                    // 👇 Aktif çağrı ekranı varsa ekran açma
                     if (IncomingCallActivity.isActive || CallActivity.isActive) {
                         Log.d("CallObserver", "📵 Çağrı ekranı zaten açık.")
                         delay(1000)
                         continue
                     }
 
+                    // ✅ 'calls' verisi var mı kontrolü
                     val callsSnapshot = FirebaseDatabase.getInstance()
                         .getReference("calls")
                         .child(roomId)
@@ -71,11 +69,24 @@ object CallObserver {
                     if (isEnded || status == "rejected") {
                         Log.d("CallObserver", "❌ Çağrı zaten bitmiş veya reddedilmiş → siliniyor.")
                         ref.awaitRemoveValue()
+                        resetInCallIfOrphaned(roomId)
                         delay(1000)
                         continue
                     }
 
-                    // Çağrı ekranı açılmadan önce sil
+                    // 🔒 Güvenlik kontrolü: inCall true ama çağrı yoksa → resetle
+                    val isUserInCall = FirebaseDatabase.getInstance()
+                        .getReference("users").child(currentUserId!!).child("inCall")
+                        .awaitSingle().getValue(Boolean::class.java) ?: false
+
+                    if (isUserInCall && !callsSnapshot.exists()) {
+                        Log.w("CallObserver", "🧹 Orphaned inCall temizleniyor...")
+                        FirebaseDatabase.getInstance()
+                            .getReference("users").child(currentUserId!!).child("inCall")
+                            .setValue(false)
+                    }
+
+                    // 🎯 Çağrı ekranı açılmadan önce istek silinsin
                     ref.awaitRemoveValue()
 
                     withContext(Dispatchers.Main) {
@@ -89,7 +100,7 @@ object CallObserver {
                     }
 
                 } catch (e: Exception) {
-                    Log.e("CallObserver", "Hata: ${e.localizedMessage}")
+                    Log.e("CallObserver", "⚠️ Hata: ${e.localizedMessage}")
                     delay(1000)
                 }
             }
@@ -97,6 +108,22 @@ object CallObserver {
 
         isListening = true
         Log.d("CallObserver", "✅ CallObserver coroutine ile dinlemeye başladı.")
+    }
+
+    private suspend fun resetInCallIfOrphaned(roomId: String) {
+        try {
+            val uid = currentUserId ?: return
+            val userRef = FirebaseDatabase.getInstance().getReference("users").child(uid)
+            val callRef = FirebaseDatabase.getInstance().getReference("calls").child(roomId)
+
+            val callExists = callRef.awaitSingle().exists()
+            if (!callExists) {
+                Log.d("CallObserver", "💀 Boşta kalan inCall sıfırlanıyor...")
+                userRef.child("inCall").setValue(false)
+            }
+        } catch (e: Exception) {
+            Log.e("CallObserver", "resetInCallIfOrphaned hata: ${e.localizedMessage}")
+        }
     }
 
     fun stop() {
