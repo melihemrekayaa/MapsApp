@@ -1,13 +1,18 @@
 package com.example.mapsapp.webrtc
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatImageButton
@@ -53,6 +58,22 @@ class CallActivity : AppCompatActivity() {
     private var isCallEnded = false
     private lateinit var callEndListener: ValueEventListener
 
+    private var isMicMuted = false
+    private var isCameraOn = true
+    private var isSpeakerOn = true
+
+    private var callStartTime = 0L
+    private val timerHandler = Handler(Looper.getMainLooper())
+    private val timerRunnable = object : Runnable {
+        override fun run() {
+            val elapsed = System.currentTimeMillis() - callStartTime
+            val seconds = (elapsed / 1000) % 60
+            val minutes = (elapsed / 1000) / 60
+            binding.callTimerTv.text = String.format("%02d:%02d", minutes, seconds)
+            timerHandler.postDelayed(this, 1000)
+        }
+    }
+
     companion object {
         var isActive: Boolean = false
     }
@@ -93,13 +114,11 @@ class CallActivity : AppCompatActivity() {
         sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
     }
 
-
-
-
-
-
     private val permissions = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
     private val requestCodePermissions = 101
+
+    private var timerStarted = false
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -134,6 +153,30 @@ class CallActivity : AppCompatActivity() {
 
     }
 
+    private fun observeCallAccepted() {
+        val statusRef = firebaseDatabase.child("calls").child(roomId).child("status")
+
+        statusRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val status = snapshot.getValue(String::class.java)
+                if (status == "accepted" && !timerStarted) {
+                    Log.d("CallActivity", "✅ Call accepted → timer başlatılıyor")
+                    startCallTimer()
+                    timerStarted = true
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {}
+        })
+    }
+
+    private fun startCallTimer() {
+        callStartTime = System.currentTimeMillis()
+        timerHandler.post(timerRunnable)
+    }
+
+
+
     private fun allPermissionsGranted(): Boolean {
         return permissions.all {
             ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
@@ -149,7 +192,6 @@ class CallActivity : AppCompatActivity() {
         }
     }
 
-
     private fun startCallSetup() {
         eglBase = EglBase.create()
 
@@ -164,6 +206,7 @@ class CallActivity : AppCompatActivity() {
 
         initWebRTC()
         startLocalMedia()
+        observeCallAccepted()
 
         if (isCaller) {
             createOffer()
@@ -171,7 +214,53 @@ class CallActivity : AppCompatActivity() {
             listenForOffer()
         }
         listenForCallEnd()
+
+        callStartTime = System.currentTimeMillis()
+        timerHandler.post(timerRunnable)
+
+        setupControlButtons()
+        observeRemoteTermination()
+
     }
+
+    private fun setupControlButtons() {
+        binding.toggleMicrophoneButton.setOnClickListener {
+            isMicMuted = !isMicMuted
+            localAudioTrack?.setEnabled(!isMicMuted)
+            binding.toggleMicrophoneButton.setImageResource(
+                if (isMicMuted) R.drawable.ic_mic_off else R.drawable.ic_mic_on
+            )
+        }
+
+        binding.toggleCameraButton.setOnClickListener {
+            isCameraOn = !isCameraOn
+            localVideoTrack?.setEnabled(isCameraOn)
+            binding.toggleCameraButton.setImageResource(
+                if (isCameraOn) R.drawable.ic_camera_on else R.drawable.ic_camera_off
+            )
+        }
+
+        binding.switchCameraButton.setOnClickListener {
+            if (videoCapturer is CameraVideoCapturer) {
+                (videoCapturer as CameraVideoCapturer).switchCamera(null)
+            }
+        }
+
+        binding.toggleAudioDevice.setOnClickListener {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            isSpeakerOn = !isSpeakerOn
+            audioManager.isSpeakerphoneOn = isSpeakerOn
+            binding.toggleAudioDevice.setImageResource(
+                if (isSpeakerOn) R.drawable.ic_ear else R.drawable.ic_speaker
+            )
+        }
+
+        // (İsteğe bağlı) screen share için ileride kullanılacak
+        binding.screenShareButton.setOnClickListener {
+            Toast.makeText(this, "Screen sharing not yet implemented", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
     private fun initWebRTC() {
         val options = PeerConnectionFactory.InitializationOptions.builder(this).createInitializationOptions()
@@ -395,6 +484,24 @@ class CallActivity : AppCompatActivity() {
             })
     }
 
+    private fun observeRemoteTermination() {
+        val callsRef = firebaseDatabase.child("calls").child(roomId)
+        callsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val ended = snapshot.child("callEnded").getValue(Boolean::class.java) ?: false
+                val offer = snapshot.child("offer").getValue() // varsa, hala aktif olabilir
+
+                if (ended || !snapshot.exists() || offer == null) {
+                    Log.w("CallActivity", "Karşı taraf bağlantıyı sonlandırmış, çıkılıyor...")
+                    endCallAndExit()
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {}
+        })
+    }
+
+
 
     private fun endCallAndExit() {
         if (isCallEnded) return
@@ -402,25 +509,42 @@ class CallActivity : AppCompatActivity() {
 
         val currentUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        // 1. Çağrı bitti bilgisini yaz ve tüm çağrı düğümünü kaldır
+        // Firebase: Çağrı durumu güncelle
         val callsRef = firebaseDatabase.child("calls").child(roomId)
         callsRef.child("callEnded").setValue(true)
         callsRef.removeValue()
-
-        // **Listener’ı kaldır**
         callsRef.removeEventListener(callEndListener)
 
-        // 2. Her iki tarafın callRequests dalını da temizle
         firebaseDatabase.child("callRequests").child(currentUid).removeValue()
         firebaseDatabase.child("callRequests").child(callerUid).removeValue()
 
-        // 3. inCall durumunu sıfırla
         FirebaseDatabase.getInstance().getReference("users")
             .child(currentUid).child("inCall").setValue(false)
+        FirebaseDatabase.getInstance().getReference("users")
+            .child(callerUid).child("inCall").setValue(false)
 
-        // 4. Activity'yi kapat
+
+        // === Medya bileşenlerini serbest bırak ===
+        try {
+            peerConnection?.close()
+            peerConnection = null
+
+            localAudioTrack?.dispose()
+            localVideoTrack?.dispose()
+            videoSource?.dispose()
+            videoCapturer?.stopCapture()
+            videoCapturer?.dispose()
+
+            localVideoView.release()
+            remoteVideoView.release()
+        } catch (e: Exception) {
+            Log.e("CallActivity", "Medya serbest bırakılırken hata: ${e.message}")
+        }
+
+        timerHandler.removeCallbacks(timerRunnable)
         finish()
     }
+
 
 
     override fun onStart() {
@@ -435,20 +559,25 @@ class CallActivity : AppCompatActivity() {
 
 
 
-    @OptIn(DelicateCoroutinesApi::class)
     override fun onDestroy() {
         super.onDestroy()
         isActive = false
 
-        // Coroutine ile inCall = false
-        GlobalScope.launch(Dispatchers.IO) {
-            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
-            FirebaseDatabase.getInstance().getReference("users")
-                .child(uid).child("inCall").setValue(false)
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val userRef = FirebaseDatabase.getInstance().getReference("users").child(uid).child("inCall")
+
+        // Retry with timeout
+        userRef.setValue(false).addOnFailureListener {
+            Handler(Looper.getMainLooper()).postDelayed({
+                userRef.setValue(false)
+            }, 2000)
         }
 
+        timerHandler.removeCallbacks(timerRunnable)
         Log.d("CallActivity", "onDestroy çağrıldı.")
     }
+
+
 
 
 

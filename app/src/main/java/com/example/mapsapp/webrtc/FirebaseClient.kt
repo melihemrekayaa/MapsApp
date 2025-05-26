@@ -46,15 +46,16 @@ class FirebaseClient {
     }
 
     suspend fun rejectCall(roomId: String) {
-        dbRef.child("calls")
-            .child(roomId)
-            .child("status")
-            .awaitSetValue("rejected")
+        dbRef.child("calls").child(roomId).child("status").awaitSetValue("rejected")
+
+        // Güvence için callEnded da yaz
+        dbRef.child("calls").child(roomId).child("callEnded").awaitSetValue(true)
     }
 
     suspend fun cancelCall(roomId: String) {
         dbRef.child("calls").child(roomId).awaitRemoveValue()
     }
+
 
     suspend fun listenForCallStatus(roomId: String): String? {
         return try {

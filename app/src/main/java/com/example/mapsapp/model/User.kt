@@ -10,8 +10,9 @@ data class User(
     val photoUrl: String? = null,
     val friends: List<String> = emptyList(),
     val friendRequests: List<String> = emptyList(),
-    val isOnline: Boolean = false,
+    var lastSeenTimestamp: Long? = null,
     @Transient
     val isRequestSent: Boolean = false,
-    var isInCall: Boolean = false
+    var isInCall: Boolean = false,
+    var photoBase64: String? = null
 )

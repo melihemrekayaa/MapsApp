@@ -53,17 +53,17 @@ class FriendsBottomSheet(
         binding.friendsRecyclerView.adapter = adapter
 
         // Başlatıyoruz
-        viewModel.observeFriendsList(currentUserId)
-
-        // StateFlow’u gözlemle
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.friendsList.collectLatest { users ->
-                    Log.d("FriendsBottomSheet", "collectLatest: received ${users.size} users")
-                    adapter.submitList(users)
-                }
-            }
-        }
+//        viewModel.observeFriendsList(currentUserId)
+//
+//        // StateFlow’u gözlemle
+//        lifecycleScope.launch {
+//            repeatOnLifecycle(Lifecycle.State.STARTED) {
+//                viewModel.friendsList.collectLatest { users ->
+//                    Log.d("FriendsBottomSheet", "collectLatest: received ${users.size} users")
+//                    adapter.submitList(users)
+//                }
+//            }
+//        }
     }
 
     override fun onDestroyView() {
