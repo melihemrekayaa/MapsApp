@@ -29,7 +29,6 @@ class CustomBottomNavView @JvmOverloads constructor(
             Triple(binding.homeButton, binding.homeLabel, R.id.homeFragment to "Home"),
             Triple(binding.mapsButton, binding.mapsLabel, R.id.mapFragment to "Maps"),
             Triple(binding.chatButton, binding.chatLabel, R.id.chatInterfaceFragment to "Chat"),
-            Triple(binding.botButton, binding.botLabel, R.id.chatBotActivity to "Chat Bot"),
             Triple(binding.settingsButton, binding.settingsLabel, R.id.settingsFragment to "Settings")
         )
 
@@ -37,6 +36,14 @@ class CustomBottomNavView @JvmOverloads constructor(
             button.setOnClickListener {
                 selectTab(button.id)
                 navigateIfNotOn(navData.first, navData.second)
+            }
+        }
+
+        // Chat Bot butonu activity olduğu için ayrı yönetiyoruz
+        binding.botButton.setOnClickListener {
+            selectTab(binding.botButton.id)
+            fragment?.let {
+                NavigationHelper.navigateTo(it, "Chat Bot")
             }
         }
 

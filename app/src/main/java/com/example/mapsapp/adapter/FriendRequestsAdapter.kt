@@ -8,7 +8,6 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
 import com.example.mapsapp.R
 import com.example.mapsapp.model.User
 
@@ -39,9 +38,7 @@ class FriendRequestsAdapter(
             friendName.text = friend.name.ifEmpty { "Unknown" } // İsmi boşsa "Unknown" yaz
             Log.d("FriendRequestsAdapter", "Displaying: ${friend.name}")
 
-            Glide.with(itemView.context)
-                .load(friend.photoUrl ?: R.drawable.baseline_account_circle_24)
-                .into(profilePic)
+
 
             acceptButton.setOnClickListener {
                 Log.d("FriendRequestsAdapter", "Accepting request from: ${friend.uid}")

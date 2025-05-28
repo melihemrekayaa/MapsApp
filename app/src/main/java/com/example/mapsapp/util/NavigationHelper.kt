@@ -1,5 +1,6 @@
 package com.example.mapsapp.util
 
+import android.app.Activity
 import android.content.Intent
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -27,7 +28,7 @@ object NavigationHelper {
                 fragment.findNavController().navigate(R.id.settingsFragment)
             }
             else -> {
-                // Log veya fallback
+                // isteğe bağlı log veya default action
             }
         }
     }

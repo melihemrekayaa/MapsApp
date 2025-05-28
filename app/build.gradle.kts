@@ -46,7 +46,6 @@ android {
     buildFeatures{
         buildConfig = true
         viewBinding = true
-        compose = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -99,6 +98,13 @@ dependencies {
     implementation ("com.mapbox.maps:android:11.12.0")
     implementation (libs.maps.locationcomponent)
 
+// ✅ DOĞRU OLAN
+    implementation("com.google.firebase:firebase-ai:16.0.0")
+    implementation(platform("com.google.firebase:firebase-bom:33.14.0"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+
+
 
 
 
@@ -135,6 +141,9 @@ dependencies {
     implementation (libs.retrofit)
     implementation (libs.converter.gson)
 
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+
 
 
     implementation ("com.google.dagger:hilt-android:2.49")
@@ -154,5 +163,3 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
-
-

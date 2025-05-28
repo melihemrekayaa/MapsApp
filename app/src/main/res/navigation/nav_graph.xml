@@ -42,9 +42,6 @@
             android:id="@+id/action_homeFragment_to_chatFragment"
             app:destination="@id/chatFragment" />
         <action
-            android:id="@+id/action_homeFragment_to_chatBotActivity"
-            app:destination="@id/chatBotActivity" />
-        <action
             android:id="@+id/action_homeFragment_to_loginFragment"
             app:destination="@id/loginFragment" />
         <action
@@ -56,6 +53,9 @@
         <action
             android:id="@+id/action_homeFragment_to_mapFragment2"
             app:destination="@id/mapFragment2" />
+        <action
+            android:id="@+id/action_homeFragment_to_chatBotFragment"
+            app:destination="@id/chatBotFragment" />
     </fragment>
 
     <!-- Chat -->
@@ -151,8 +151,12 @@
     </fragment>
 
     <!-- ChatBot (Activity) -->
-    <activity
-        android:id="@+id/chatBotActivity"
-        android:name="com.example.mapsapp.view.chatbot.ChatBotActivity"
-        android:label="ChatBot" />
+    <fragment
+        android:id="@+id/chatBotFragment"
+        android:name="com.example.mapsapp.view.chatbot.ChatBotFragment"
+        android:label="ChatBotFragment" >
+        <action
+            android:id="@+id/action_chatBotFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+    </fragment>
 </navigation>

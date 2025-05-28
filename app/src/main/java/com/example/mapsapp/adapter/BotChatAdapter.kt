@@ -1,64 +1,71 @@
 package com.example.mapsapp.adapter
 
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.mapsapp.R
-import com.example.mapsapp.model.BotChatMessage
+import com.example.mapsapp.model.ChatMessage
 import java.text.SimpleDateFormat
-import java.util.Locale
+import java.util.*
 
-class BotChatAdapter(private val messages: List<BotChatMessage>): RecyclerView.Adapter<RecyclerView.ViewHolder>()  {
+class BotChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    companion object{
-        const val VIEW_TYPE_USER_MESSAGE = 1
-        const val VIEW_TYPE_BOT_MESSAGE = 2
-    }
-    class UserMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val messageTextView: TextView = itemView.findViewById(R.id.text_message_body)
-        val timeTextView: TextView = itemView.findViewById(R.id.text_message_time)
+    private val messages = mutableListOf<ChatMessage>()
+
+    fun submitList(newList: List<ChatMessage>) {
+        messages.clear()
+        messages.addAll(newList)
+        notifyDataSetChanged()
     }
 
-    class BotMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val messageTextView: TextView = itemView.findViewById(R.id.text_message_body)
-        val timeTextView: TextView = itemView.findViewById(R.id.text_message_time)
-    }
 
     override fun getItemViewType(position: Int): Int {
-        return if (messages[position].isUser) {
-            VIEW_TYPE_USER_MESSAGE
-        } else {
-            VIEW_TYPE_BOT_MESSAGE
-        }
+        return if (messages[position].isUser) 0 else 1
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return if (viewType == VIEW_TYPE_USER_MESSAGE) {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_user_message, parent, false)
-            UserMessageViewHolder(view)
+        val inflater = LayoutInflater.from(parent.context)
+        return if (viewType == 0) {
+            val view = inflater.inflate(R.layout.item_user_message, parent, false)
+            UserViewHolder(view)
         } else {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_other_message, parent, false)
-            BotMessageViewHolder(view)
+            val view = inflater.inflate(R.layout.item_ai_message, parent, false)
+            AiViewHolder(view)
         }
     }
 
-    override fun getItemCount(): Int {
-        return messages.size
-    }
+    override fun getItemCount(): Int = messages.size
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = messages[position]
-        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val time = sdf.format(message.timestamp)
+        val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(message.timestamp))
 
-        if (holder is UserMessageViewHolder) {
-            holder.messageTextView.text = message.message
-            holder.timeTextView.text = time
-        } else if (holder is BotMessageViewHolder) {
-            holder.messageTextView.text = message.message
-            holder.timeTextView.text = time
+        if (holder is UserViewHolder) {
+            holder.textMessage.text = message.text
+            holder.textTime.text = time
+        } else if (holder is AiViewHolder) {
+            holder.textMessage.text = message.text
+            holder.textTime.text = time
         }
+    }
+
+
+    private fun typeWriter(textView: TextView, fullText: String, index: Int = 0) {
+        if (index <= fullText.length) {
+            textView.text = fullText.substring(0, index)
+            textView.postDelayed({
+                typeWriter(textView, fullText, index + 1)
+            }, 20L)
+        }
+    }
+
+    class UserViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val textMessage: TextView = view.findViewById(R.id.textMessage)
+        val textTime: TextView = view.findViewById(R.id.textTime)
+    }
+
+    class AiViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val textMessage: TextView = view.findViewById(R.id.textMessage)
+        val textTime: TextView = view.findViewById(R.id.textTime)
     }
 }

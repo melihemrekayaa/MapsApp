@@ -1,7 +1,7 @@
 package com.example.mapsapp.model
 
 data class BotChatMessage(
-    var message: String,
-    val isUser: Boolean,
-    val timestamp: Long
+    val message: String = "",
+    val sender: String = "", // "user" veya "ai"
+    val timestamp: String? = null
 )
