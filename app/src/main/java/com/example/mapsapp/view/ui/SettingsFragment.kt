@@ -1,7 +1,6 @@
 package com.example.mapsapp.view.ui
 
 import android.content.ContentValues
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri

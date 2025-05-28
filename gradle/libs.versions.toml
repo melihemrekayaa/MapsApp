@@ -1,16 +1,18 @@
 [versions]
-agp = "8.7.2"
+agp = "8.10.0"
 constraintlayoutVersion = "2.2.0"
 converterGson = "2.11.0"
+firebaseAi = "16.0.0"
 firebaseAnalyticsKtx = "22.1.2"
 firebaseAuthKtx = "23.1.0"
 firebaseBom = "33.6.0"
 firebaseDatabaseKtx = "21.0.0"
 firebaseFirestoreKtx = "25.1.1"
+firebaseGenerativeAi = "0.5.0"
 glide = "4.16.0"
 gson = "2.10.1"
 json = "20210307"
-kotlin = "1.9.0"
+kotlin = "2.0.0"
 coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -38,18 +40,23 @@ webrtc = "1.0.5"
 lifecycleProcess = "2.8.7"
 uiTestAndroid = "1.5.0"
 playServicesLocation = "21.3.0"
+generativeai = "0.9.0"
+securityCryptoKtx = "1.0.0"
 
 [libraries]
 androidx-constraintlayout-v220 = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayoutVersion" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-swiperefreshlayout = { module = "androidx.swiperefreshlayout:swiperefreshlayout", version.ref = "swiperefreshlayout" }
+com-google-firebase-firebase-ai = { module = "com.google.firebase:firebase-ai", version.ref = "firebaseAi" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
+firebase-ai = { module = "com.google.firebase:firebase-ai", version.ref = "firebaseAi" }
 firebase-analytics-ktx = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebaseAnalyticsKtx" }
 firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-database-ktx = { module = "com.google.firebase:firebase-database-ktx", version.ref = "firebaseDatabaseKtx" }
 firebase-firestore-ktx = { module = "com.google.firebase:firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
+google-firebase-ai = { module = "com.google.firebase:firebase-ai" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 json = { module = "org.json:json", version.ref = "json" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -84,6 +91,8 @@ webrtc = { module = "com.mesibo.api:webrtc", version.ref = "webrtc" }
 androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
 androidx-ui-test-android = { group = "androidx.compose.ui", name = "ui-test-android", version.ref = "uiTestAndroid" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+generativeai = { group = "com.google.ai.client.generativeai", name = "generativeai", version.ref = "generativeai" }
+androidx-security-crypto-ktx = { group = "androidx.security", name = "security-crypto-ktx", version.ref = "securityCryptoKtx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
