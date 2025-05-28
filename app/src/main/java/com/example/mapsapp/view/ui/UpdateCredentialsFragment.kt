@@ -1,4 +1,4 @@
-package com.example.mapsapp.view.settings
+package com.example.mapsapp.view.ui
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -36,7 +36,7 @@ class UpdateCredentialsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         currentUser = auth.currentUser
-        applyMode(args.mode)
+        applyMode(args.type)
         setupListeners()
     }
 
@@ -83,7 +83,7 @@ class UpdateCredentialsFragment : Fragment() {
                     return@addOnCompleteListener
                 }
 
-                when (args.mode) {
+                when (args.type) {
                     "email" -> {
                         if (newEmail.isBlank() || newEmail == user.email) {
                             showToast("Please enter a new email.")

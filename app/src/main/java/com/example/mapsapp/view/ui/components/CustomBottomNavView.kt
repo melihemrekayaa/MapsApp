@@ -8,6 +8,8 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.CustomBottomNavBinding
@@ -39,7 +41,6 @@ class CustomBottomNavView @JvmOverloads constructor(
             }
         }
 
-        // Chat Bot butonu activity olduğu için ayrı yönetiyoruz
         binding.botButton.setOnClickListener {
             selectTab(binding.botButton.id)
             fragment?.let {
@@ -47,15 +48,28 @@ class CustomBottomNavView @JvmOverloads constructor(
             }
         }
 
-        // Başlangıçta Home seçili
         selectTab(binding.homeButton.id)
+        highlightCurrentTab()
     }
 
     private fun navigateIfNotOn(destinationId: Int, destination: String) {
-        fragment?.let { frag ->
-            val navController = frag.findNavController()
+        try {
+            fragment?.let { frag ->
+                val navController = frag.findNavController()
+                if (navController.currentDestination?.id != destinationId) {
+                    NavigationHelper.navigateTo(frag, destination)
+                }
+            }
+        } catch (e: IllegalStateException) {
+            // Yedek yöntem: activity üzerinden NavController almaya çalış
+            val fallbackNavController = (context as? FragmentActivity)
+                ?.supportFragmentManager
+                ?.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
+                ?: return
+
+            val navController = fallbackNavController.navController
             if (navController.currentDestination?.id != destinationId) {
-                NavigationHelper.navigateTo(frag, destination)
+                navController.navigate(destinationId)
             }
         }
     }
@@ -109,6 +123,26 @@ class CustomBottomNavView @JvmOverloads constructor(
                     label.visibility = View.GONE
                 }
                 .start()
+        }
+    }
+
+    fun forceSelectTab(buttonId: Int) {
+        selectTab(buttonId)
+    }
+
+    private fun highlightCurrentTab() {
+        try {
+            fragment?.let { frag ->
+                val navController = frag.findNavController()
+                when (navController.currentDestination?.id) {
+                    R.id.homeFragment -> selectTab(R.id.homeButton)
+                    R.id.mapFragment -> selectTab(R.id.mapsButton)
+                    R.id.chatInterfaceFragment -> selectTab(R.id.chatButton)
+                    R.id.settingsFragment -> selectTab(R.id.settingsButton)
+                }
+            }
+        } catch (e: Exception) {
+            // Sessizce yutulabilir ya da log atabilirsin
         }
     }
 }

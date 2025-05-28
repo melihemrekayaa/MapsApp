@@ -16,7 +16,7 @@ import com.example.mapsapp.model.User
 class FriendsAdapter(
     private val onFriendClick: (User) -> Unit,
     private val onRemoveClick: (User) -> Unit
-) : ListAdapter<Triple<User, Boolean, Boolean>, FriendsAdapter.FriendViewHolder>(DiffCallback) {
+) : ListAdapter<User, FriendsAdapter.FriendViewHolder>(DiffCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FriendViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -34,11 +34,7 @@ class FriendsAdapter(
         private val friendStatusIcon: ImageView = itemView.findViewById(R.id.friendStatusIcon)
         private val profileImage: ImageView = itemView.findViewById(R.id.profileImage)
 
-        fun bind(item: Triple<User, Boolean, Boolean>) {
-            val user = item.first
-            val isOnline = item.second
-            val isInCall = item.third
-
+        fun bind(user: User) {
             friendName.text = user.name
 
             val lastSeenText = user.lastSeenTimestamp?.let {
@@ -48,22 +44,19 @@ class FriendsAdapter(
                 else "Last seen ${minutes / 60} h ago"
             } ?: "Unknown"
 
-            // Durum metni
             friendStatus.text = when {
-                isInCall -> "In Call"
-                isOnline -> "" // Online ise yazı göstermiyoruz
+                user.isInCall -> "In Call"
+                user.isOnline == true -> "" // Online ise yazı yok
                 else -> lastSeenText
             }
 
-            // Durum ikonu
             val statusDrawable = when {
-                isInCall -> R.drawable.circle_red
-                isOnline -> R.drawable.circle_green
+                user.isInCall -> R.drawable.circle_red
+                user.isOnline == true -> R.drawable.circle_green
                 else -> R.drawable.circle_gray
             }
             friendStatusIcon.setImageResource(statusDrawable)
 
-            // Base64 profil fotoğrafı gösterimi
             user.photoBase64?.let { base64 ->
                 try {
                     val cleanBase64 = base64.substringAfter(",", base64)
@@ -79,24 +72,17 @@ class FriendsAdapter(
 
             itemView.setOnClickListener { onFriendClick(user) }
         }
-
-
-
-
     }
 
-    companion object {
-        private val DiffCallback = object : DiffUtil.ItemCallback<Triple<User, Boolean, Boolean>>() {
-            override fun areItemsTheSame(
-                oldItem: Triple<User, Boolean, Boolean>,
-                newItem: Triple<User, Boolean, Boolean>
-            ): Boolean = oldItem.first.uid == newItem.first.uid
+    fun getItemAt(position: Int): User = getItem(position)
 
-            override fun areContentsTheSame(
-                oldItem: Triple<User, Boolean, Boolean>,
-                newItem: Triple<User, Boolean, Boolean>
-            ): Boolean = oldItem == newItem
+    companion object {
+        private val DiffCallback = object : DiffUtil.ItemCallback<User>() {
+            override fun areItemsTheSame(oldItem: User, newItem: User): Boolean =
+                oldItem.uid == newItem.uid
+
+            override fun areContentsTheSame(oldItem: User, newItem: User): Boolean =
+                oldItem == newItem
         }
     }
 }
-

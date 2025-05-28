@@ -1,5 +1,6 @@
 package com.example.mapsapp.model
 
+import com.google.firebase.firestore.Exclude
 import com.google.firebase.firestore.GeoPoint
 
 data class User(
@@ -9,10 +10,11 @@ data class User(
     val location: GeoPoint? = null,
     val photoUrl: String? = null,
     val friends: List<String> = emptyList(),
-    val friendRequests: List<String> = emptyList(),
     var lastSeenTimestamp: Long? = null,
-    @Transient
-    val isRequestSent: Boolean = false,
     var isInCall: Boolean = false,
-    var photoBase64: String? = null
+    var photoBase64: String? = null,
+    var isOnline: Boolean = false,
+
+    @get:Exclude
+    var isRequestSent: Boolean = false
 )

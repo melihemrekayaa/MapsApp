@@ -87,4 +87,20 @@ class MapsMainActivity : AppCompatActivity() {
         super.onStart()
         setupOnlineStatusRealtimeDb()
     }
+
+    override fun onResume() {
+        super.onResume()
+
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
+        val currentFragment = navHostFragment?.childFragmentManager?.fragments?.firstOrNull()
+        val bottomNav = findViewById<CustomBottomNavView>(R.id.customButtonNav)
+
+        currentFragment?.let {
+            bottomNav.setupNavigation(it)
+            bottomNav.forceSelectTab(R.id.homeButton) // 👈 bu satırı ekliyoruz
+        }
+    }
+
+
 }

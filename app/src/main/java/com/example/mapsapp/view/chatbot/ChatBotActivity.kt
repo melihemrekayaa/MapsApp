@@ -1,11 +1,15 @@
 package com.example.mapsapp.view.chatbot
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.fragment.NavHostFragment
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.mapsapp.R
 import com.example.mapsapp.adapter.BotChatAdapter
 import com.example.mapsapp.databinding.ActivityChatBotBinding
+import com.example.mapsapp.view.ui.components.CustomBottomNavView
 import com.example.mapsapp.viewmodel.ChatBotViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -19,7 +23,12 @@ class ChatBotActivity : AppCompatActivity() {
     private val adapter = BotChatAdapter()
 
     private val userId: String
-        get() = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+        get() {
+            val uid = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+            Log.d("ChatBot", "Current userId: $uid")
+            return uid
+        }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,6 +74,10 @@ class ChatBotActivity : AppCompatActivity() {
             viewModel.clearChat(userId)
         }
     }
+
+
+
+
 
 
 

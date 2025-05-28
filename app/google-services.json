@@ -1,8 +1,9 @@
 {
   "project_info": {
     "project_number": "373434849442",
+    "firebase_url": "https://mapsapp-c63a7-default-rtdb.firebaseio.com",
     "project_id": "mapsapp-c63a7",
-    "storage_bucket": "mapsapp-c63a7.appspot.com"
+    "storage_bucket": "mapsapp-c63a7.firebasestorage.app"
   },
   "client": [
     {
@@ -12,26 +13,16 @@
           "package_name": "com.example.mapsapp"
         }
       },
-      "oauth_client": [],
-      "api_key": [
+      "oauth_client": [
         {
-          "current_key": "AIzaSyDxB_MLn3FfZUe5Qarxz2YUQBPAeI3boyo"
+          "client_id": "373434849442-gmbbiim0llok8u3bp8ffjgska9hfqtj4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mapsapp",
+            "certificate_hash": "5a0d41710b3f52946a5743cb3b7a76bac3b6d1ec"
+          }
         }
       ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:373434849442:android:2546dd65f79e4bcb9e1ffb",
-        "android_client_info": {
-          "package_name": "com.example.mapsapp.webrtc"
-        }
-      },
-      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyDxB_MLn3FfZUe5Qarxz2YUQBPAeI3boyo"
