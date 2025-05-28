@@ -5,7 +5,6 @@ plugins {
     id ("kotlin-kapt")
     id ("dagger.hilt.android.plugin")
     id ("kotlin-parcelize")
-    alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
     id("androidx.navigation.safeargs.kotlin")
 }
 
@@ -99,13 +98,7 @@ dependencies {
     implementation (libs.maps.locationcomponent)
 
 // ✅ DOĞRU OLAN
-    implementation("com.google.firebase:firebase-ai:16.0.0")
-    implementation(platform("com.google.firebase:firebase-bom:33.14.0"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
-
-
-
-
 
 
     implementation (platform(libs.firebase.bom))
@@ -120,7 +113,6 @@ dependencies {
     implementation ("androidx.security:security-crypto:1.1.0-alpha06")
     implementation(libs.androidx.lifecycle.process)
 
-    implementation (libs.play.services.auth)
     implementation(libs.androidx.ui.test.android)
     implementation(libs.play.services.location)
 
@@ -146,8 +138,8 @@ dependencies {
 
 
 
+
     implementation ("com.google.dagger:hilt-android:2.49")
-    implementation(libs.play.services.maps)
     kapt ("com.google.dagger:hilt-compiler:2.49")
 
     implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")

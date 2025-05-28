@@ -50,12 +50,7 @@
         <action
             android:id="@+id/action_homeFragment_to_settingsFragment"
             app:destination="@id/settingsFragment" />
-        <action
-            android:id="@+id/action_homeFragment_to_mapFragment2"
-            app:destination="@id/mapFragment2" />
-        <action
-            android:id="@+id/action_homeFragment_to_chatBotFragment"
-            app:destination="@id/chatBotFragment" />
+
     </fragment>
 
     <!-- Chat -->
@@ -74,6 +69,9 @@
         <action
             android:id="@+id/action_chatFragment_to_homeFragment"
             app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_chatFragment_to_mapFragment"
+            app:destination="@id/mapFragment" />
     </fragment>
 
     <!-- Chat Interface -->
@@ -91,6 +89,9 @@
         <action
             android:id="@+id/action_chatInterfaceFragment_to_homeFragment"
             app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_chatInterfaceFragment_to_friendRequestsFragment"
+            app:destination="@id/friendRequestsFragment" />
     </fragment>
 
     <!-- Add Friends -->
@@ -105,30 +106,20 @@
         android:id="@+id/settingsFragment"
         android:name="com.example.mapsapp.view.ui.SettingsFragment"
         android:label="Settings">
+
         <action
             android:id="@+id/action_settingsFragment_to_updateCredentialsFragment"
             app:destination="@id/updateCredentialsFragment" />
+        <action
+            android:id="@+id/action_settingsFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
         <action
             android:id="@+id/action_settingsFragment_to_loginFragment"
             app:destination="@id/loginFragment" />
     </fragment>
 
     <!-- Update Credentials -->
-    <fragment
-        android:id="@+id/updateCredentialsFragment"
-        android:name="com.example.mapsapp.view.ui.UpdateCredentialsFragment"
-        android:label="Update Credentials">
-        <argument
-            android:name="mode"
-            app:argType="string"
-            android:defaultValue="password" />
-        <action
-            android:id="@+id/action_updateCredentialsFragment_to_settingsFragment"
-            app:destination="@id/settingsFragment" />
-        <action
-            android:id="@+id/action_updateCredentialsFragment_to_loginFragment"
-            app:destination="@id/loginFragment" />
-    </fragment>
+
 
     <!-- Map Fragment -->
     <fragment
@@ -139,24 +130,37 @@
         <action
             android:id="@+id/action_mapFragment_to_homeFragment"
             app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_mapFragment_to_chatFragment"
+            app:destination="@id/chatFragment" />
     </fragment>
 
-    <fragment
-        android:id="@+id/mapFragment2"
-        android:name="com.example.mapsapp.view.map.MapFragment"
-        android:label="Map 2">
-        <action
-            android:id="@+id/action_mapFragment2_to_homeFragment"
-            app:destination="@id/homeFragment" />
-    </fragment>
+
 
     <!-- ChatBot (Activity) -->
+
     <fragment
-        android:id="@+id/chatBotFragment"
-        android:name="com.example.mapsapp.view.chatbot.ChatBotFragment"
-        android:label="ChatBotFragment" >
+        android:id="@+id/friendRequestsFragment"
+        android:name="com.example.mapsapp.view.ui.FriendRequestsFragment"
+        android:label="FriendRequestsFragment" >
         <action
-            android:id="@+id/action_chatBotFragment_to_homeFragment"
-            app:destination="@id/homeFragment" />
+            android:id="@+id/action_friendRequestsFragment_to_chatInterfaceFragment"
+            app:destination="@id/chatInterfaceFragment" />
     </fragment>
+    <fragment
+        android:id="@+id/updateCredentialsFragment"
+        android:name="com.example.mapsapp.view.ui.UpdateCredentialsFragment"
+        android:label="UpdateCredentialsFragment" >
+
+        <argument
+            android:name="type"
+            app:argType="string"
+            android:defaultValue="email" />
+
+        <action
+            android:id="@+id/action_updateCredentialsFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
+    </fragment>
+
+
 </navigation>

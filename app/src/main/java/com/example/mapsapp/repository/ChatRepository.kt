@@ -1,5 +1,6 @@
 package com.example.mapsapp.repository
 
+import android.util.Log
 import com.example.mapsapp.model.ChatMessage
 import com.google.firebase.database.*
 import javax.inject.Inject
@@ -16,7 +17,7 @@ class ChatRepository @Inject constructor(
 
     fun listenMessages(userId: String, onData: (List<ChatMessage>) -> Unit) {
         db.reference.child("chatMessages").child(userId)
-            .orderByChild("timestamp") // ← BU ŞART
+            .orderByChild("timestamp") // ← Burası kritik
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     val messages = snapshot.children.mapNotNull {
@@ -30,10 +31,16 @@ class ChatRepository @Inject constructor(
     }
 
 
+
     fun clearMessages(userId: String, onComplete: () -> Unit) {
-        db.reference.child("chatMessages").child(userId).removeValue().addOnCompleteListener {
-            onComplete()
-        }
+        db.reference.child("chatMessages").child(userId)
+            .removeValue()
+            .addOnCompleteListener {
+                Log.d("Firebase", "Silme tamamlandı: ${it.isSuccessful}")
+                onComplete()
+            }
     }
+
+
 
 }

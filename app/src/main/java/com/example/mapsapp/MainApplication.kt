@@ -14,12 +14,15 @@ class MainApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // 🔧 Firebase başlat
+        com.google.firebase.FirebaseApp.initializeApp(this)
+
         FirebaseAuth.getInstance().addAuthStateListener { auth ->
             val userId = auth.currentUser?.uid
             if (userId != null) {
-                CallObserver.start(applicationContext) // ✅ Login olduysa dinlemeye başla
+                CallObserver.start(applicationContext)
             } else {
-                CallObserver.stop() // 🚫 Logout olduysa dinlemeyi bırak
+                CallObserver.stop()
             }
         }
     }

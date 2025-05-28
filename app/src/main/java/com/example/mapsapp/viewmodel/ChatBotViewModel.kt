@@ -1,5 +1,6 @@
 package com.example.mapsapp.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.*
 import com.example.mapsapp.model.*
 import com.example.mapsapp.repository.ChatRepository
@@ -57,9 +58,13 @@ class ChatBotViewModel @Inject constructor(
 
 
     fun clearChat(userId: String) {
+        Log.d("ChatBot", "Silme başlatılıyor: $userId")
         repository.clearMessages(userId) {
-            _messages.value = emptyList()
+            Log.d("ChatBot", "Silme tamamlandı.")
+            _messages.postValue(emptyList())
         }
     }
+
+
 
 }

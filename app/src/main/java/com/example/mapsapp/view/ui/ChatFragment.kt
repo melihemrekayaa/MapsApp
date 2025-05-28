@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mapsapp.R
 import com.example.mapsapp.adapter.ChatAdapter
 import com.example.mapsapp.databinding.FragmentChatBinding
+import com.example.mapsapp.model.User
 import com.example.mapsapp.util.BaseFragment
 import com.example.mapsapp.viewmodel.ChatViewModel
 import com.example.mapsapp.webrtc.CallActivity
@@ -50,64 +51,70 @@ class ChatFragment : BaseFragment() {
         receiverId = arguments?.getString("receiverId")
         receiverName = arguments?.getString("receiverName")
 
-        Log.d("ChatFragment", "receiverId: $receiverId") // 📌 **Gelen receiverId kontrolü**
+        Log.d("ChatFragment", "receiverId: $receiverId")
 
-        initChatUI()
-
-        toolbar = binding.chatToolbar
         setupToolbar()
+        observeMessages()
+        setupSendButton()
+
+        return binding.root
+    }
+
+    private fun setupToolbar() {
+        toolbar = binding.chatToolbar
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_back)
+        toolbar.navigationIcon?.setTint(resources.getColor(R.color.white))
+        toolbar.title = receiverName ?: "User"
+        toolbar.setNavigationOnClickListener {
+            findNavController().navigateUp()
+        }
 
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.action_voice_call -> {
-                    Log.d("ChatFragment", "🔊 Sesli Arama Başlatılıyor...")
                     startCall(false)
                     true
                 }
                 R.id.action_video_call -> {
-                    Log.d("ChatFragment", "📹 Görüntülü Arama Başlatılıyor...")
                     startCall(true)
                     true
                 }
                 else -> false
             }
         }
-
-        return binding.root
     }
+    private fun observeMessages() {
 
-    private fun initChatUI() {
-        adapter = ChatAdapter(chatViewModel.messages.value ?: emptyList(), auth.currentUser?.uid ?: "")
+        adapter = ChatAdapter(currentUserId = auth.currentUser?.uid ?: "")
         binding.recyclerView.adapter = adapter
         binding.recyclerView.layoutManager = LinearLayoutManager(context)
 
+        chatViewModel.messagesWithProfiles.observe(viewLifecycleOwner) { messages ->
+
+            if (messages.isNullOrEmpty()) {
+                binding.recyclerView.visibility = View.GONE
+            } else {
+                adapter.submitList(messages)
+                binding.recyclerView.visibility = View.VISIBLE
+                binding.recyclerView.scrollToPosition(messages.size - 1)
+            }
+        }
+
+        receiverId?.let { chatViewModel.listenForMessages(it) }
+    }
+
+
+
+
+
+
+    private fun setupSendButton() {
         binding.sendButton.setOnClickListener {
             val messageText = binding.messageEditText.text.toString()
             if (messageText.isNotBlank() && receiverId != null) {
                 chatViewModel.sendMessage(receiverId!!, messageText)
                 binding.messageEditText.text?.clear()
-                binding.recyclerView.scrollToPosition(adapter.itemCount - 1)
             }
-        }
-
-        binding.loadingIndicator.visibility = View.VISIBLE
-
-        chatViewModel.messages.observe(viewLifecycleOwner) { messages ->
-            adapter.updateMessages(messages)
-            binding.recyclerView.scrollToPosition(messages.size - 1)
-            binding.loadingIndicator.visibility = View.GONE
-        }
-
-        receiverId?.let { chatViewModel.listenForMessages(it) }
-        activity?.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
-    }
-
-    private fun setupToolbar() {
-        toolbar.setNavigationIcon(R.drawable.ic_arrow_back)
-        toolbar.navigationIcon?.setTint(resources.getColor(R.color.white))
-        toolbar.title = receiverName ?: "User"
-        toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
         }
     }
 
@@ -125,7 +132,6 @@ class ChatFragment : BaseFragment() {
                         return@launch
                     }
 
-                    // 🔒 Kullanıcıya çağrı gönderilecek → inCall = true yap
                     firebaseClient.setUserInCall(receiverId, true)
 
                     chatViewModel.sendCallRequest(receiverId, isVideoCall, roomId) { success ->
@@ -147,7 +153,7 @@ class ChatFragment : BaseFragment() {
                         } else {
                             Toast.makeText(requireContext(), "Çağrı gönderilemedi", Toast.LENGTH_SHORT).show()
                             lifecycleScope.launch {
-                                firebaseClient.setUserInCall(receiverId, false) // başarısızsa geri al
+                                firebaseClient.setUserInCall(receiverId, false)
                             }
                         }
                     }
@@ -156,34 +162,26 @@ class ChatFragment : BaseFragment() {
         }
     }
 
-
-    private fun getCameraAndMicPermission(onPermissionGranted: () -> Unit) {
+    private fun getCameraAndMicPermission(onGranted: () -> Unit) {
         val permissions = arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO)
-        val permissionsToRequest = permissions.filter {
+        val deniedPermissions = permissions.filter {
             ContextCompat.checkSelfPermission(requireContext(), it) != PackageManager.PERMISSION_GRANTED
         }
 
-        if (permissionsToRequest.isEmpty()) {
-            Log.d("ChatFragment", "✅ Kamera ve Mikrofon izinleri zaten verilmiş.")
-            onPermissionGranted()
+        if (deniedPermissions.isEmpty()) {
+            onGranted()
         } else {
-            Log.d("ChatFragment", "🚨 Kamera ve Mikrofon izinleri isteniyor: $permissionsToRequest")
-            requestPermissions(permissionsToRequest.toTypedArray(), REQUEST_CODE_PERMISSIONS)
+            onPermissionGranted = onGranted
+            requestPermissions(deniedPermissions.toTypedArray(), REQUEST_CODE_PERMISSIONS)
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                Log.d("ChatFragment", "✅ Kullanıcı izinleri onayladı.")
                 onPermissionGranted?.invoke()
             } else {
-                Log.e("ChatFragment", "🚨 Kullanıcı izinleri reddetti.")
                 Toast.makeText(requireContext(), "Çağrı için izinler gerekli.", Toast.LENGTH_SHORT).show()
             }
         }
@@ -193,7 +191,6 @@ class ChatFragment : BaseFragment() {
         super.onDestroyView()
         _binding = null
     }
-
 
     override fun onDestroy() {
         super.onDestroy()
@@ -210,10 +207,7 @@ class ChatFragment : BaseFragment() {
                 }
             }
         }
-
-        Log.d("CallActivity", "onDestroy çağrıldı.")
     }
-
 
     override fun onResume() {
         super.onResume()

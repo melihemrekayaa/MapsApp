@@ -64,12 +64,6 @@ object AppModule {
         return ChatRepository(db)
     }
 
-    @Provides
-    @Singleton
-    @Named("GEMINI_API_KEY")
-    fun provideGeminiApiKey(): String {
-        return "AIzaSyAfGogBMgJpsrhaT6rFTV9gd3V3VlFpUss"
-    }
 
     @Provides
     @Singleton
@@ -80,7 +74,7 @@ object AppModule {
             .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
-                    .addHeader("Authorization", "Bearer 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")
+                    .addHeader("Authorization", "Bearer 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")
                     .build()
                 chain.proceed(request)
             }

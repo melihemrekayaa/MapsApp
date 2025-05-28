@@ -39,9 +39,6 @@
         <meta-data
             android:name="com.mapbox.access_token"
             android:value="pk.eyJ1IjoiZGFyeHJlZmxleHgiLCJhIjoiY21hc2R2cnNxMGZ3bjJscjMwOXN5YWtkciJ9.1AgAzWXusQCoyIgy3Q6nEA" />
-        <meta-data
-            android:name="com.google.android.gms.client.id"
-            android:value="373434849442-gmbbiim0llok8u3bp8ffjgska9hfqtj4.apps.googleusercontent.com" />
 
         <activity
             android:name=".webrtc.CallActivity"

@@ -17,8 +17,8 @@ class ChatInterfaceViewModel @Inject constructor(
     private val repository: AuthRepository
 ) : ViewModel() {
 
-    private val _friendsWithFullStatus = MutableStateFlow<List<Triple<User, Boolean, Boolean>>>(emptyList())
-    val friendsWithFullStatus: StateFlow<List<Triple<User, Boolean, Boolean>>> = _friendsWithFullStatus.asStateFlow()
+    private val _friendsWithFullStatus = MutableStateFlow<List<User>>(emptyList())
+    val friendsWithFullStatus: StateFlow<List<User>> = _friendsWithFullStatus.asStateFlow()
 
     private val _friendRequests = MutableStateFlow<List<User>>(emptyList())
     val friendRequests: StateFlow<List<User>> = _friendRequests.asStateFlow()
@@ -38,7 +38,6 @@ class ChatInterfaceViewModel @Inject constructor(
     private fun observeRealtimeData() {
         val currentUser = repository.getCurrentUser()?.uid ?: return
 
-        // Arkadaş listesi canlı olarak dinlenir
         viewModelScope.launch {
             repository.getFriendsListRealtime(currentUser).collect { friends ->
                 latestFriends = friends
@@ -46,33 +45,24 @@ class ChatInterfaceViewModel @Inject constructor(
             }
         }
 
-        // Online + Last Seen listener
         FirebaseDatabase.getInstance().getReference("usersOnlineStatus")
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    Log.d("ChatInterfaceVM", "OnlineStatus snapshot received")
-
                     for (child in snapshot.children) {
                         val uid = child.key ?: continue
                         val isOnline = child.child("isOnline").getValue(Boolean::class.java) ?: false
                         val lastSeen = child.child("lastSeen").getValue(Long::class.java)
-
-                        Log.d("ChatInterfaceVM", "[$uid] isOnline: $isOnline, lastSeen: $lastSeen")
-
                         onlineMap[uid] = isOnline
                         lastSeenMap[uid] = lastSeen
                     }
-
                     updateCombinedList()
                 }
-
 
                 override fun onCancelled(error: DatabaseError) {
                     Log.e("ChatInterfaceVM", "Online status listener failed", error.toException())
                 }
             })
 
-        // In Call listener
         FirebaseDatabase.getInstance().getReference("users")
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -90,15 +80,17 @@ class ChatInterfaceViewModel @Inject constructor(
     }
 
     private fun updateCombinedList() {
-        val combined = latestFriends.map { user ->
+        val updated = latestFriends.map { user ->
             user.lastSeenTimestamp = lastSeenMap[user.uid]
-            Triple(
-                user,
-                onlineMap[user.uid] == true,
-                inCallMap[user.uid] == true
-            )
+            user.isInCall = inCallMap[user.uid] == true
+            user.copy().apply {
+                isInCall = inCallMap[user.uid] == true
+                lastSeenTimestamp = lastSeenMap[user.uid]
+            }.also {
+                onlineMap[it.uid]?.let { online -> it.isOnline = online }
+            }
         }
-        _friendsWithFullStatus.value = combined
+        _friendsWithFullStatus.value = updated
     }
 
     fun resetInCallState() {
@@ -120,34 +112,15 @@ class ChatInterfaceViewModel @Inject constructor(
         }
     }
 
-    fun acceptFriendRequest(currentUserUid: String, friendUid: String) {
-        viewModelScope.launch {
-            repository.acceptFriendRequest(currentUserUid, friendUid) { success ->
-                if (success) {
-                    _operationStatus.value = "Friend request accepted."
-                    repository.removeFriendRequest(currentUserUid, friendUid)
-                    repository.removeFriendRequest(friendUid, currentUserUid)
-                } else {
-                    _operationStatus.value = "Failed to accept friend request."
-                }
-            }
-        }
-    }
-
-    fun removeFriendRequest(userUid: String, friendUid: String) {
-        viewModelScope.launch {
-            repository.removeFriendRequest(userUid, friendUid)
-            _friendRequests.value = _friendRequests.value.filter { it.uid != friendUid }
-        }
-    }
-
     fun removeFriend(currentUserId: String, friendId: String) {
         viewModelScope.launch {
             val result = repository.removeFriend(currentUserId, friendId)
-            _operationStatus.value = if (result) {
-                "Friend removed successfully"
+            if (result) {
+                val updatedList = _friendsWithFullStatus.value.filterNot { it.uid == friendId }
+                _friendsWithFullStatus.value = updatedList
+                _operationStatus.value = "Friend removed successfully"
             } else {
-                "Failed to remove friend"
+                _operationStatus.value = "Failed to remove friend"
             }
         }
     }
@@ -156,3 +129,4 @@ class ChatInterfaceViewModel @Inject constructor(
         _operationStatus.value = null
     }
 }
+

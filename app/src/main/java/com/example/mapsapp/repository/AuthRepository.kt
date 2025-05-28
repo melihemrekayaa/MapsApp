@@ -49,7 +49,6 @@ class AuthRepository @Inject constructor(
                 name = name,
                 email = email,
                 friends = listOf(),
-                friendRequests = listOf()
             )
             firestore.collection("users").document(userId).set(user).await()
             Result.success("User registered successfully")
@@ -78,17 +77,33 @@ class AuthRepository @Inject constructor(
 
     suspend fun loadUsers(): List<User> {
         return try {
-            val currentUserId = getCurrentUser()?.uid
+            val currentUser = getCurrentUser() ?: return emptyList()
+            val currentUserId = currentUser.uid
+
             val snapshot = firestore.collection("users").get().await()
-            val users = snapshot.toObjects(User::class.java).map { user ->
-                val isRequestSent = user.friendRequests.contains(currentUserId)
-                user.copy(isRequestSent = isRequestSent)
+            snapshot.toObjects(User::class.java).mapNotNull { user ->
+                if (user.uid == currentUserId || user.friends.contains(currentUserId)) {
+                    null
+                } else {
+                    // isRequestSent kontrolü artık alt koleksiyon üzerinden
+                    val requestDoc = firestore.collection("users")
+                        .document(user.uid)
+                        .collection("friendRequests")
+                        .document(currentUserId)
+                        .get()
+                        .await()
+
+                    val isRequestSent = requestDoc.exists()
+                    user.copy(isRequestSent = isRequestSent)
+                }
             }
-            users
         } catch (e: Exception) {
+            Log.e("AuthRepository", "loadUsers error: ${e.message}")
             emptyList()
         }
     }
+
+
 
 
 
@@ -110,12 +125,19 @@ class AuthRepository @Inject constructor(
     suspend fun sendFriendRequest(receiverId: String): Boolean {
         return try {
             val currentUser = getCurrentUser()?.uid ?: return false
+            val ref = firestore.collection("users")
+                .document(receiverId)
+                .collection("friendRequests")
+                .document(currentUser)
+
+            val existing = ref.get().await()
+            if (existing.exists()) return false // zaten gönderilmiş
+
             val requestData = mapOf("from" to currentUser)
-            firestore.collection("users").document(receiverId)
-                .collection("friendRequests").document(currentUser)
-                .set(requestData).await()
+            ref.set(requestData).await()
             true
         } catch (e: Exception) {
+            Log.e("AuthRepository", "sendFriendRequest error: ${e.message}")
             false
         }
     }
@@ -152,57 +174,41 @@ class AuthRepository @Inject constructor(
 
         val firestoreListener = userDocRef.addSnapshotListener { snapshot, error ->
             if (error != null || snapshot == null || !snapshot.exists()) {
-                Log.e("RepoRealtime", "Snapshot error: ${error?.message}")
                 cancel("Snapshot error", error)
                 return@addSnapshotListener
             }
 
             val friendsList = snapshot.get("friends") as? List<String> ?: emptyList()
-            Log.d("RepoRealtime", "Fetched ${friendsList.size} friends from Firestore")
 
-            if (friendsList.isEmpty()) {
-                trySend(emptyList()).onFailure {
-                    Log.e("RepoRealtime", "Snapshot error: ${error?.message}")
-                    cancel("Send failed", it)
+            // 🔄 Silinen arkadaşları temizle
+            val removedIds = liveFriendsMap.keys - friendsList
+            removedIds.forEach { removedId ->
+                lastSeenListeners[removedId]?.let {
+                    realtimeDb.child(removedId).removeEventListener(it)
                 }
-                return@addSnapshotListener
+                lastSeenListeners.remove(removedId)
+                liveFriendsMap.remove(removedId)
             }
-
-            // 🔄 Clear existing listeners
-            lastSeenListeners.forEach { (uid, listener) ->
-                realtimeDb.child(uid).removeEventListener(listener)
-            }
-            lastSeenListeners.clear()
-            liveFriendsMap.clear()
 
             friendsList.forEach { friendId ->
-                firestore.collection("users").document(friendId)
-                    .addSnapshotListener { friendSnap, _ ->
-                        val user = friendSnap?.toObject(User::class.java)
-                        if (user == null) {
-                            Log.w("RepoRealtime", "User null for friendId=$friendId")
-                            return@addSnapshotListener
-                        }
+                if (lastSeenListeners.containsKey(friendId)) return@forEach
 
-                        Log.d("RepoRealtime", "User fetched from Firestore: ${user.name} (${user.uid})")
+                firestore.collection("users").document(friendId)
+                    .get()
+                    .addOnSuccessListener { friendDoc ->
+                        val user = friendDoc.toObject(User::class.java) ?: return@addOnSuccessListener
 
                         val listener = object : ValueEventListener {
                             override fun onDataChange(snapshot: DataSnapshot) {
                                 val lastSeen = snapshot.child("lastSeen").getValue(Long::class.java)
-                                Log.d("RepoRealtime", "Realtime lastSeen for ${user.name} ($friendId): $lastSeen")
-
                                 val fullUser = user.copy(lastSeenTimestamp = lastSeen)
                                 liveFriendsMap[friendId] = fullUser
-
                                 trySend(liveFriendsMap.values.toList()).onFailure {
-                                    Log.e("RepoRealtime", "Realtime DB error for $friendId: ${error?.message}")
                                     cancel("Send failed", it)
                                 }
                             }
 
-                            override fun onCancelled(error: DatabaseError) {
-                                Log.e("RepoRealtime", "Realtime DB error for $friendId: ${error.message}")
-                            }
+                            override fun onCancelled(error: DatabaseError) {}
                         }
 
                         realtimeDb.child(friendId).addValueEventListener(listener)
@@ -212,19 +218,12 @@ class AuthRepository @Inject constructor(
         }
 
         awaitClose {
-            Log.d("RepoRealtime", "Closing getFriendsListRealtime, removing all listeners")
             firestoreListener.remove()
-            lastSeenListeners.forEach { (uid, listener) ->
-                realtimeDb.child(uid).removeEventListener(listener)
+            lastSeenListeners.forEach { (id, listener) ->
+                realtimeDb.child(id).removeEventListener(listener)
             }
         }
     }
-
-
-
-
-
-
 
 
 
@@ -258,36 +257,63 @@ class AuthRepository @Inject constructor(
     }
 
     fun loadFriendRequests(userUid: String): Flow<List<User>> = callbackFlow {
-        val listener = firestore.collection("users")
+        val requestRef = firestore.collection("users")
             .document(userUid)
             .collection("friendRequests")
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
 
-                if (snapshot != null) {
-                    val requests = snapshot.documents.mapNotNull { doc ->
-                        val senderUid = doc.getString("from") ?: return@mapNotNull null
-                        firestore.collection("users").document(senderUid)
-                            .get()
-                            .addOnSuccessListener { senderSnapshot ->
-                                if (senderSnapshot.exists()) {
-                                    val user = senderSnapshot.toObject(User::class.java)
-                                    if (user != null) {
-                                        trySend(listOf(user)) // Güncellenen listeyi gönder
-                                    }
-                                }
-                            }
-                        null
-                    }
-                    trySend(requests)
-                }
+        val listener = requestRef.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
             }
+
+            val senderIds = snapshot?.documents?.mapNotNull { it.getString("from") }.orEmpty()
+            if (senderIds.isEmpty()) {
+                trySend(emptyList())
+                return@addSnapshotListener
+            }
+
+            val users = mutableListOf<User>()
+            var loaded = 0
+            senderIds.forEach { senderId ->
+                firestore.collection("users").document(senderId)
+                    .get()
+                    .addOnSuccessListener { doc ->
+                        doc.toObject(User::class.java)?.let { users.add(it) }
+                        loaded++
+                        if (loaded == senderIds.size) trySend(users.toList())
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("AuthRepository", "Error loading sender user: ${e.message}")
+                        loaded++
+                        if (loaded == senderIds.size) trySend(users.toList())
+                    }
+            }
+        }
 
         awaitClose { listener.remove() }
     }
+
+    suspend fun getFriendRequests(currentUserId: String): List<User> {
+        return try {
+            val snapshot = firestore.collection("users")
+                .document(currentUserId)
+                .collection("friendRequests")
+                .get()
+                .await()
+
+            val senderIds = snapshot.documents.mapNotNull { it.getString("from") }
+            senderIds.mapNotNull { uid ->
+                firestore.collection("users").document(uid).get().await().toObject(User::class.java)
+            }
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "getFriendRequests error: ${e.message}")
+            emptyList()
+        }
+    }
+
+
+
 
 
 

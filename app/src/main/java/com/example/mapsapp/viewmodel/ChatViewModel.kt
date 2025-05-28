@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mapsapp.model.Message
+import com.example.mapsapp.model.MessageWithUserProfile
 import com.example.mapsapp.webrtc.FirebaseClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -22,32 +23,54 @@ class ChatViewModel @Inject constructor(
     private val firebaseClient: FirebaseClient // ✅ Inject edildi
 ) : ViewModel() {
 
-    private val _messages = MutableLiveData<List<Message>>()
-    val messages: LiveData<List<Message>> get() = _messages
+    private val _messages = MutableLiveData<List<MessageWithUserProfile>>()
+    val messages: LiveData<List<MessageWithUserProfile>> get() = _messages
+
+    private val _messagesWithProfiles = MutableLiveData<List<MessageWithUserProfile>>()
+    val messagesWithProfiles: LiveData<List<MessageWithUserProfile>> get() = _messagesWithProfiles
+
+    private val _userProfiles = MutableLiveData<Map<String, String>>() // Map<userId, photoBase64>
+    val userProfiles: LiveData<Map<String, String>> get() = _userProfiles
+
 
     private var chatListener: ListenerRegistration? = null
 
     fun listenForMessages(receiverId: String) {
         val currentUserId = auth.currentUser?.uid ?: return
-        val combinedMessages = mutableListOf<Message>()
-
-        val chatQuery = firestore.collection("messages")
+        firestore.collection("messages")
             .whereIn("senderId", listOf(currentUserId, receiverId))
             .whereIn("receiverId", listOf(currentUserId, receiverId))
             .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { value, error ->
+                if (error != null || value == null) return@addSnapshotListener
 
-        chatListener = chatQuery.addSnapshotListener { value, error ->
-            if (error != null) return@addSnapshotListener
-
-            combinedMessages.clear()
-            value?.forEach { doc ->
-                val message = doc.toObject(Message::class.java)
-                combinedMessages.add(message)
+                val messages = value.mapNotNull { it.toObject(Message::class.java) }
+                fetchUserProfilesAndMap(messages)
             }
+    }
 
-            _messages.value = combinedMessages
+    private fun fetchUserProfilesAndMap(messages: List<Message>) {
+        val userIds = messages.map { it.senderId }.toSet()
+        val usersRef = firestore.collection("users")
+        val userMap = mutableMapOf<String, Pair<String, String>>() // userId -> Pair<name, photoBase64>
+
+        userIds.forEach { userId ->
+            usersRef.document(userId).get().addOnSuccessListener { document ->
+                val name = document.getString("name") ?: ""
+                val photo = document.getString("photoBase64") ?: ""
+                userMap[userId] = Pair(name, photo)
+
+                if (userMap.size == userIds.size) {
+                    val mapped = messages.map { msg ->
+                        val (name, photoBase64) = userMap[msg.senderId] ?: Pair("", "")
+                        MessageWithUserProfile(msg, name, photoBase64)
+                    }
+                    _messagesWithProfiles.value = mapped
+                }
+            }
         }
     }
+
 
     fun sendMessage(receiverId: String, messageText: String) {
         if (messageText.isNotEmpty()) {

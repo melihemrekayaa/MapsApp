@@ -7,22 +7,34 @@
     android:background="#FFF6FB"
     android:padding="8dp">
 
-    <TextView
+    <!-- Clear Chat alanı (ikon + yazı birlikte tıklanabilir) -->
+    <LinearLayout
         android:id="@+id/btnClearChat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:drawableStart="@drawable/ic_trash"
-        android:drawablePadding="4dp"
-        android:text="Clear Chat"
-        android:textColor="#FF0000"
-        android:textStyle="bold"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:padding="8dp"
-        android:layout_marginBottom="4dp"
         android:clickable="true"
         android:focusable="true"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"/>
+        app:layout_constraintStart_toStartOf="parent">
 
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_trash"
+            android:contentDescription="Delete Icon"
+            app:tint="#000000" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Clear Chat"
+            android:textColor="#ff0000"
+            android:textStyle="bold"
+            android:paddingStart="4dp"/>
+    </LinearLayout>
 
     <!-- Mesaj listesi -->
     <androidx.recyclerview.widget.RecyclerView
@@ -32,7 +44,7 @@
         android:clipToPadding="false"
         android:paddingBottom="8dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnClearChat"
         app:layout_constraintBottom_toTopOf="@id/messageInputContainer"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
