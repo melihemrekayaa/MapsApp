@@ -36,17 +36,14 @@ class LoginFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
-            // Geri tuşu engellendi
-        }
-
         binding.registerRedirectText.setOnClickListener {
             val navController = findNavController()
             val action = LoginFragmentDirections.actionLoginFragmentToRegisterFragment()
             navController.navigate(action)
         }
 
-        authViewModel.checkLoginState()
+        authViewModel.checkLoginState(forceDisable = requireActivity().intent?.getBooleanExtra("FORCE_LOGOUT", false) == true)
+
         setupListeners()
         observeViewModel()
     }
@@ -93,19 +90,28 @@ class LoginFragment : Fragment() {
     }
 
     private fun navigateToHome() {
+        val user = authViewModel.getCurrentUser()
+        if (user != null && !user.isEmailVerified) {
+            showToast("Please verify your email before continuing.")
+            // Eğer istersen burada direkt email gönderimi de tetikleyebilirsin:
+            // user.sendEmailVerification()
+            return
+        }
+
         val navController = findNavController()
         val currentDestination = navController.currentDestination?.id
 
         Log.d("Navigation", "Current Destination: $currentDestination")
         Log.d("Navigation", "Attempting to navigate to HomeFragment")
 
-        if (currentDestination != R.id.homeFragment){
+        if (currentDestination != R.id.homeFragment) {
             val action = LoginFragmentDirections.actionLoginFragmentToHomeFragment()
             navController.navigate(action)
         } else {
             Log.d("Navigation", "Already on HomeFragment. Skipping navigation.")
         }
     }
+
 
     private fun showToast(message: String) {
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()

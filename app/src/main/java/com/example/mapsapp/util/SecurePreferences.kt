@@ -37,12 +37,15 @@ class SecurePreferences(context: Context) {
         sharedPreferences.edit().apply {
             remove("EMAIL")
             remove("PASSWORD")
-            putBoolean("STAY_SIGNED_IN", false)
+            remove("STAY_SIGNED_IN") // 🔥 Bunu eklemen gerekiyordu
             apply()
         }
     }
 
+
     fun shouldStaySignedIn(): Boolean {
-        return sharedPreferences.getBoolean("STAY_SIGNED_IN", false)
+        return sharedPreferences.contains("STAY_SIGNED_IN") &&
+                sharedPreferences.getBoolean("STAY_SIGNED_IN", false)
     }
+
 }

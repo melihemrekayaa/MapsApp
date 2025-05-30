@@ -3,6 +3,8 @@ package com.example.mapsapp.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mapsapp.repository.AuthRepository
+import com.example.mapsapp.util.SecurePreferences
+import com.google.firebase.auth.FirebaseUser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,30 +13,20 @@ import javax.inject.Inject
 
 @HiltViewModel
 class UpdateCredentialsViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val securePreferences: SecurePreferences
 ) : ViewModel() {
 
     private val _updateStatus = MutableStateFlow<String?>(null)
-    val updateStatus: StateFlow<String?> = _updateStatus
+    val updateStatus: StateFlow<String?> get() = _updateStatus
 
-    fun sendVerificationMail(newEmail: String) {
-        viewModelScope.launch {
-            val result = authRepository.sendVerificationToNewEmail(newEmail)
-            _updateStatus.value = if (result.isSuccess) {
-                "Verification email sent to $newEmail. Please verify before proceeding."
-            } else {
-                "Error sending verification: ${result.exceptionOrNull()?.localizedMessage}"
-            }
-        }
-    }
-
-    fun updateEmailAfterVerification(currentPassword: String, newEmail: String) {
+    fun reauthenticateAndChangeEmail(currentPassword: String, newEmail: String) {
         viewModelScope.launch {
             val result = authRepository.reauthenticateAndChangeEmail(currentPassword, newEmail)
-            _updateStatus.value = if (result.isSuccess) {
-                "Email updated successfully. Please login again."
+            if (result.isSuccess) {
+                _updateStatus.value = "Email updated successfully. Please verify your new email and log in again."
             } else {
-                "Error updating email: ${result.exceptionOrNull()?.localizedMessage}"
+                _updateStatus.value = "Email update failed: ${result.exceptionOrNull()?.localizedMessage}"
             }
         }
     }
@@ -42,13 +34,31 @@ class UpdateCredentialsViewModel @Inject constructor(
     fun updatePassword(currentPassword: String, newPassword: String) {
         viewModelScope.launch {
             val result = authRepository.reauthenticateAndChangePassword(currentPassword, newPassword)
-            _updateStatus.value = if (result.isSuccess) {
-                "Password updated successfully. Please login again."
+            if (result.isSuccess) {
+                _updateStatus.value = "Password updated successfully. Please log in again."
             } else {
-                "Error updating password: ${result.exceptionOrNull()?.localizedMessage}"
+                _updateStatus.value = "Password update failed: ${result.exceptionOrNull()?.localizedMessage}"
             }
         }
     }
+
+    fun logoutAndClearCredentials() {
+        viewModelScope.launch {
+            authRepository.logout()
+            // securePreferences da burada temizlenmeli
+            securePreferences.clearCredentials()
+        }
+    }
+
+
+    fun getCurrentUser(): FirebaseUser? {
+        return authRepository.getCurrentUser()
+    }
+
+    fun clearStaySignedIn() {
+        authRepository.clearStaySignedIn()
+    }
+
 
     fun clearStatus() {
         _updateStatus.value = null

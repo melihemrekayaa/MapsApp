@@ -1,5 +1,6 @@
 package com.example.mapsapp.repository
 
+import android.content.Context
 import android.util.Log
 import com.example.mapsapp.model.User
 import com.example.mapsapp.webrtc.UserRTC
@@ -13,6 +14,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.gson.Gson
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.onFailure
@@ -22,17 +24,25 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.content.edit
 
 @Singleton
 class AuthRepository @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    @ApplicationContext private val context: Context
 ) {
 
     companion object {
         private const val USERS_COLLECTION = "Users"
         private const val FRIEND_REQUESTS_COLLECTION = "friendRequests"
         private const val FRIENDS_COLLECTION = "friends"
+        private const val PREF_NAME = "user_prefs"
+        private const val PREF_KEY_STAY_SIGNED_IN = "staySignedIn"
+    }
+
+    private val prefs by lazy {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     }
 
     fun getCurrentUser(): FirebaseUser? {
@@ -347,20 +357,6 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    suspend fun sendVerificationToNewEmail(newEmail: String): Result<Unit> {
-        return try {
-            // Geçici kullanıcı oluşturup sadece doğrulama maili atmak için
-            val tempPassword = "Temp123456!"
-            val result = auth.createUserWithEmailAndPassword(newEmail, tempPassword).await()
-            result.user?.sendEmailVerification()?.await()
-
-            // Doğrulama gönderildi, hesap sonra manuel silinir ya da kullanıcı login olmaz
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
 
     suspend fun removeFriend(currentUserId: String, friendId: String): Boolean {
         return try {
@@ -401,18 +397,13 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun reauthenticateAndChangeEmail(currentPassword: String, newEmail: String): Result<Unit> {
-        val user = auth.currentUser ?: return Result.failure(Exception("Kullanıcı oturumu yok"))
+        val user = auth.currentUser ?: return Result.failure(Exception("User not logged in"))
+        val currentEmail = user.email ?: return Result.failure(Exception("Email not found"))
 
+        val credential = EmailAuthProvider.getCredential(currentEmail, currentPassword)
         return try {
-            val credential = EmailAuthProvider.getCredential(user.email ?: "", currentPassword)
             user.reauthenticate(credential).await()
-
-            user.updateEmail(newEmail).await()
-            updateEmailInFirestore(user.uid, newEmail)
-
-            user.sendEmailVerification().await()
-            logout()
-
+            user.verifyBeforeUpdateEmail(newEmail).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -422,29 +413,21 @@ class AuthRepository @Inject constructor(
 
 
     suspend fun reauthenticateAndChangePassword(currentPassword: String, newPassword: String): Result<Unit> {
-        val user = auth.currentUser ?: return Result.failure(Exception("Kullanıcı oturumu yok"))
+        val user = auth.currentUser ?: return Result.failure(Exception("User not logged in"))
 
+        val credential = EmailAuthProvider.getCredential(user.email ?: return Result.failure(Exception("Email not found")), currentPassword)
         return try {
-            val credential = EmailAuthProvider.getCredential(user.email ?: "", currentPassword)
             user.reauthenticate(credential).await()
-
             user.updatePassword(newPassword).await()
-
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-
-
-    suspend fun updateEmailInFirestore(uid: String, newEmail: String) {
-        firestore.collection("users")
-            .document(uid)
-            .update("email", newEmail)
-            .await()
+    fun clearStaySignedIn() {
+        prefs.edit { putBoolean(PREF_KEY_STAY_SIGNED_IN, false) }
     }
-
 
 
     fun logout() {

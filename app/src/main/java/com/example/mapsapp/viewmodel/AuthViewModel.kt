@@ -1,11 +1,7 @@
 package com.example.mapsapp.viewmodel
 
-import android.app.Application
-import android.content.Context
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.mapsapp.model.User
 import com.example.mapsapp.repository.AuthRepository
 import com.example.mapsapp.util.SecurePreferences
 import com.google.firebase.auth.FirebaseUser
@@ -28,6 +24,8 @@ class AuthViewModel @Inject constructor(
 
     private val _isUserLoggedIn = MutableStateFlow(false)
     val isUserLoggedIn: StateFlow<Boolean> = _isUserLoggedIn.asStateFlow()
+
+    fun getCurrentUser(): FirebaseUser? = authRepository.getCurrentUser()
 
     private fun performAuthOperation(
         operation: suspend () -> Result<String>,
@@ -75,7 +73,12 @@ class AuthViewModel @Inject constructor(
         securePreferences.saveCredentials(email, password)
     }
 
-    fun checkLoginState() {
+    fun checkLoginState(forceDisable: Boolean = false) {
+        if (forceDisable) {
+            clearLoginState()
+            return
+        }
+
         val email = securePreferences.getEmail()
         val password = securePreferences.getPassword()
         val staySignedIn = securePreferences.shouldStaySignedIn()
@@ -86,16 +89,20 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+
     fun logout() {
         authRepository.logout()
         _currentUser.value = null
-        _authResult.value = null // Success mesajı UI'de gerekmez
+        _authResult.value = null
         clearLoginState()
     }
 
     private fun clearLoginState() {
         securePreferences.clearCredentials()
+        authRepository.clearStaySignedIn() // SharedPreferences içindeki flag'i de temizle
     }
+
+
 
     sealed class AuthResult {
         data class Success(val message: String) : AuthResult()
