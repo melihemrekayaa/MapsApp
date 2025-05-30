@@ -1,20 +1,21 @@
 package com.example.mapsapp.view.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import com.example.mapsapp.R
+import com.example.mapsapp.MapsMainActivity
 import com.example.mapsapp.databinding.FragmentUpdateCredentialsBinding
 import com.example.mapsapp.viewmodel.UpdateCredentialsViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class UpdateCredentialsFragment : Fragment() {
@@ -32,58 +33,38 @@ class UpdateCredentialsFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        applyMode()
-        setupListeners()
-        observeViewModel()
-    }
-
-    private fun applyMode() {
-        // Varsayılan olarak e-posta güncelleme modunu açar
-        binding.etNewEmail.isVisible = true
-        binding.etNewPassword.isVisible = false
-        binding.etConfirmNewPassword.isVisible = false
-        binding.btnSendVerification.isVisible = true
-        binding.btnUpdateEmail.isVisible = true
-        binding.btnUpdatePassword.isVisible = false
-    }
-
-    private fun setupListeners() {
-        binding.btnSendVerification.setOnClickListener {
-            val email = binding.etNewEmail.text.toString().trim()
-            if (email.isEmpty()) {
-                toast("New email cannot be empty.")
-            } else {
-                viewModel.sendVerificationMail(email)
-            }
-        }
+        super.onViewCreated(view, savedInstanceState)
+        observeStatus()
 
         binding.btnUpdateEmail.setOnClickListener {
-            val currentPassword = binding.etCurrentPassword.text.toString()
-            val newEmail = binding.etNewEmail.text.toString()
-            if (currentPassword.isBlank() || newEmail.isBlank()) {
-                toast("Please fill in all fields.")
+            val currentPassword = binding.etCurrentPassword.text.toString().trim()
+            val newEmail = binding.etNewEmail.text.toString().trim()
+
+            if (currentPassword.isEmpty() || newEmail.isEmpty()) {
+                showToast("Please enter both current password and new email")
                 return@setOnClickListener
             }
-            viewModel.updateEmailAfterVerification(currentPassword, newEmail)
+
+            viewModel.reauthenticateAndChangeEmail(currentPassword, newEmail)
         }
 
         binding.btnUpdatePassword.setOnClickListener {
-            val currentPassword = binding.etCurrentPassword.text.toString()
-            val newPassword = binding.etNewPassword.text.toString()
-            val confirmPassword = binding.etConfirmNewPassword.text.toString()
+            val currentPassword = binding.etCurrentPassword.text.toString().trim()
+            val newPassword = binding.etNewPassword.text.toString().trim()
+            val confirmPassword = binding.etConfirmNewPassword.text.toString().trim()
 
-            if (currentPassword.isBlank() || newPassword.isBlank() || confirmPassword.isBlank()) {
-                toast("Please fill in all fields.")
+            if (currentPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
+                showToast("Please fill in all password fields")
                 return@setOnClickListener
             }
 
             if (newPassword != confirmPassword) {
-                toast("Passwords do not match.")
+                showToast("New passwords do not match")
                 return@setOnClickListener
             }
 
             if (newPassword.length < 6) {
-                toast("Password must be at least 6 characters.")
+                showToast("Password must be at least 6 characters")
                 return@setOnClickListener
             }
 
@@ -91,19 +72,16 @@ class UpdateCredentialsFragment : Fragment() {
         }
     }
 
-    private fun observeViewModel() {
-        lifecycleScope.launchWhenStarted {
-            viewModel.updateStatus.collectLatest { status ->
+    private fun observeStatus() {
+        lifecycleScope.launch {
+            viewModel.updateStatus.collect { status ->
                 status?.let {
-                    toast(it)
+                    showToast(it)
+                    disableButtons()
 
-                    if (it.contains("Verification email sent", true) || it.contains("Email updated", true)) {
-                        findNavController().navigate(R.id.loginFragment) {
-                            popUpTo(R.id.nav_graph) {
-                                inclusive = true
-                            }
-                            launchSingleTop = true
-                        }
+                    // Hem email hem şifre güncellemede aynı logout akışı
+                    if (it.contains("updated successfully", ignoreCase = true)) {
+                        logoutAndRedirect()
                     }
 
                     viewModel.clearStatus()
@@ -112,8 +90,33 @@ class UpdateCredentialsFragment : Fragment() {
         }
     }
 
-    private fun toast(msg: String) {
-        Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
+    private fun disableButtons() {
+        binding.btnSendVerification.isEnabled = false
+        binding.btnUpdatePassword.isEnabled = false
+        binding.btnUpdateEmail.isEnabled = false
+    }
+
+    private fun logoutAndRedirect() {
+        viewModel.logoutAndClearCredentials()
+        viewModel.clearStaySignedIn()
+
+        val intent = Intent(requireContext(), MapsMainActivity::class.java)
+        intent.putExtra("FORCE_LOGOUT", true)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        requireActivity().finish()
+    }
+
+    private fun showToast(message: String) {
+        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val user = viewModel.getCurrentUser()
+        if (user == null) {
+            logoutAndRedirect()
+        }
     }
 
     override fun onDestroyView() {

@@ -28,10 +28,9 @@ abstract class BaseFragment : Fragment() {
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 val currentDestination = findNavController().currentDestination?.id
-                val previousDestination = findNavController().previousBackStackEntry?.destination?.id
 
-                if (previousDestination == R.id.loginFragment || previousDestination == R.id.registerFragment) {
-                    // Geri tuşu hiçbir şey yapmasın
+                if (currentDestination == R.id.loginFragment || currentDestination == R.id.registerFragment) {
+                    // Bu sayfalardayken geri tuşu hiçbir şey yapmasın
                     return
                 } else {
                     // Normal geri işlemi
@@ -39,6 +38,7 @@ abstract class BaseFragment : Fragment() {
                     requireActivity().onBackPressed()
                 }
             }
+
         })
     }
     protected open fun applyBottomInsetToView(targetView: View) {

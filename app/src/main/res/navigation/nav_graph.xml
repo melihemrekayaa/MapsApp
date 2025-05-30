@@ -160,6 +160,9 @@
         <action
             android:id="@+id/action_updateCredentialsFragment_to_settingsFragment"
             app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_updateCredentialsFragment_to_loginFragment"
+            app:destination="@id/loginFragment" />
     </fragment>
 
 

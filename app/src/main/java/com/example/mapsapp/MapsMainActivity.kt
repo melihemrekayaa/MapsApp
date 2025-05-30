@@ -5,9 +5,9 @@ import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
-import androidx.navigation.ui.setupWithNavController
 import com.example.mapsapp.databinding.ActivityMainMapsBinding
 import com.example.mapsapp.view.ui.components.CustomBottomNavView
 import com.google.firebase.auth.FirebaseAuth
@@ -19,17 +19,23 @@ import dagger.hilt.android.AndroidEntryPoint
 class MapsMainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainMapsBinding
+    private lateinit var bottomNav: CustomBottomNavView
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // ✅ Dark Mode ayarı
         applyDarkModeFromPreferences()
-
         super.onCreate(savedInstanceState)
+
         binding = ActivityMainMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupNavigation()
+        bottomNav = findViewById(R.id.customButtonNav)
+
+        setupNavigation() // sadece bu yeterli
     }
+
+
+
+
 
     private fun applyDarkModeFromPreferences() {
         val prefs = getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -40,29 +46,29 @@ class MapsMainActivity : AppCompatActivity() {
         )
     }
 
+    private fun handleForceLogout(navController: NavController) {
+        if (intent.getBooleanExtra("FORCE_LOGOUT", false)) {
+            navController.navigate(R.id.loginFragment)
+            intent.removeExtra("FORCE_LOGOUT") // tekrar tetiklenmesin diye
+        }
+    }
+
+
     private fun setupNavigation() {
         val navHostFragment =
-            supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
-        val navController = navHostFragment?.findNavController()
-        val bottomNavigationView = findViewById<CustomBottomNavView>(R.id.customButtonNav)
+            supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment ?: return
+        val navController = navHostFragment.findNavController()
 
-        // İlk açılışta doğru fragment için setup
-        val currentFragment = navHostFragment?.childFragmentManager?.fragments?.firstOrNull()
-        currentFragment?.let { bottomNavigationView.setupNavigation(it) }
+        handleForceLogout(navController)
 
-        // Fragment değiştikçe bottom nav visibility güncelle
-        navController?.addOnDestinationChangedListener { _, destination, _ ->
-            when (destination.id) {
-                R.id.loginFragment, R.id.registerFragment, R.id.chatFragment -> {
-                    bottomNavigationView.visibility = View.GONE
-                }
-
-                else -> {
-                    bottomNavigationView.visibility = View.VISIBLE
-                }
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            bottomNav.visibility = when (destination.id) {
+                R.id.loginFragment, R.id.registerFragment, R.id.chatFragment -> View.GONE
+                else -> View.VISIBLE
             }
         }
     }
+
 
     private fun setupOnlineStatusRealtimeDb() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -85,22 +91,28 @@ class MapsMainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        setupOnlineStatusRealtimeDb()
+        if (FirebaseAuth.getInstance().currentUser != null) {
+            setupOnlineStatusRealtimeDb()
+        }
     }
 
     override fun onResume() {
         super.onResume()
 
         val navHostFragment =
-            supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
-        val currentFragment = navHostFragment?.childFragmentManager?.fragments?.firstOrNull()
-        val bottomNav = findViewById<CustomBottomNavView>(R.id.customButtonNav)
+            supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment ?: return
 
+        val currentFragment = navHostFragment.childFragmentManager.fragments.firstOrNull()
         currentFragment?.let {
-            bottomNav.setupNavigation(it)
-            bottomNav.forceSelectTab(R.id.homeButton) // 👈 bu satırı ekliyoruz
+            if (::bottomNav.isInitialized) {
+                bottomNav.setupNavigation(it)
+                val currentDestination = navHostFragment.navController.currentDestination?.id
+                bottomNav.visibility = when (currentDestination) {
+                    R.id.loginFragment, R.id.registerFragment -> View.GONE
+                    else -> View.VISIBLE
+                }
+            }
         }
     }
-
 
 }
