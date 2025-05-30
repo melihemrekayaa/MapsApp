@@ -6,10 +6,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavController
 import androidx.navigation.fragment.findNavController
 import com.example.mapsapp.R
 import com.example.mapsapp.databinding.FragmentLoginBinding
@@ -36,6 +36,10 @@ class LoginFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
+            // Geri tuşu engellendi
+        }
+
         binding.registerRedirectText.setOnClickListener {
             val navController = findNavController()
             val action = LoginFragmentDirections.actionLoginFragmentToRegisterFragment()
@@ -54,7 +58,7 @@ class LoginFragment : Fragment() {
             val staySignedIn = binding.checkBoxStaySignedIn.isChecked
 
             if (email.isNotEmpty() && password.isNotEmpty()) {
-                toggleLoading(true) // ProgressBar göster, butonu gizle
+                toggleLoading(true)
                 authViewModel.login(email, password, staySignedIn)
             } else {
                 showToast("Please fill in all the fields.")
@@ -65,7 +69,7 @@ class LoginFragment : Fragment() {
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             authViewModel.authResult.collectLatest { result ->
-                if (!isAdded || isDetached || view == null) return@collectLatest // Check fragment state
+                if (!isAdded || isDetached || view == null) return@collectLatest
 
                 when (result) {
                     is AuthViewModel.AuthResult.Loading -> toggleLoading(true)
@@ -98,9 +102,8 @@ class LoginFragment : Fragment() {
         if (currentDestination != R.id.homeFragment){
             val action = LoginFragmentDirections.actionLoginFragmentToHomeFragment()
             navController.navigate(action)
-        } else{
+        } else {
             Log.d("Navigation", "Already on HomeFragment. Skipping navigation.")
-
         }
     }
 

@@ -17,13 +17,24 @@ class UpdateCredentialsViewModel @Inject constructor(
     private val _updateStatus = MutableStateFlow<String?>(null)
     val updateStatus: StateFlow<String?> = _updateStatus
 
-    fun updateEmail(currentPassword: String, newEmail: String) {
+    fun sendVerificationMail(newEmail: String) {
+        viewModelScope.launch {
+            val result = authRepository.sendVerificationToNewEmail(newEmail)
+            _updateStatus.value = if (result.isSuccess) {
+                "Verification email sent to $newEmail. Please verify before proceeding."
+            } else {
+                "Error sending verification: ${result.exceptionOrNull()?.localizedMessage}"
+            }
+        }
+    }
+
+    fun updateEmailAfterVerification(currentPassword: String, newEmail: String) {
         viewModelScope.launch {
             val result = authRepository.reauthenticateAndChangeEmail(currentPassword, newEmail)
             _updateStatus.value = if (result.isSuccess) {
-                "Email updated successfully"
+                "Email updated successfully. Please login again."
             } else {
-                "Error: ${result.exceptionOrNull()?.localizedMessage}"
+                "Error updating email: ${result.exceptionOrNull()?.localizedMessage}"
             }
         }
     }
@@ -32,9 +43,9 @@ class UpdateCredentialsViewModel @Inject constructor(
         viewModelScope.launch {
             val result = authRepository.reauthenticateAndChangePassword(currentPassword, newPassword)
             _updateStatus.value = if (result.isSuccess) {
-                "Password updated successfully"
+                "Password updated successfully. Please login again."
             } else {
-                "Error: ${result.exceptionOrNull()?.localizedMessage}"
+                "Error updating password: ${result.exceptionOrNull()?.localizedMessage}"
             }
         }
     }
