@@ -347,6 +347,21 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    suspend fun sendVerificationToNewEmail(newEmail: String): Result<Unit> {
+        return try {
+            // Geçici kullanıcı oluşturup sadece doğrulama maili atmak için
+            val tempPassword = "Temp123456!"
+            val result = auth.createUserWithEmailAndPassword(newEmail, tempPassword).await()
+            result.user?.sendEmailVerification()?.await()
+
+            // Doğrulama gönderildi, hesap sonra manuel silinir ya da kullanıcı login olmaz
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+
     suspend fun removeFriend(currentUserId: String, friendId: String): Boolean {
         return try {
             val userRef = firestore.collection("users").document(currentUserId)
@@ -386,19 +401,17 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun reauthenticateAndChangeEmail(currentPassword: String, newEmail: String): Result<Unit> {
-        val user = auth.currentUser ?: return Result.failure(Exception("User not logged in"))
+        val user = auth.currentUser ?: return Result.failure(Exception("Kullanıcı oturumu yok"))
 
         return try {
             val credential = EmailAuthProvider.getCredential(user.email ?: "", currentPassword)
             user.reauthenticate(credential).await()
 
             user.updateEmail(newEmail).await()
+            updateEmailInFirestore(user.uid, newEmail)
 
-            // Firestore'daki email bilgisini de güncelle
-            firestore.collection("users")
-                .document(user.uid)
-                .update("email", newEmail)
-                .await()
+            user.sendEmailVerification().await()
+            logout()
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -406,8 +419,10 @@ class AuthRepository @Inject constructor(
         }
     }
 
+
+
     suspend fun reauthenticateAndChangePassword(currentPassword: String, newPassword: String): Result<Unit> {
-        val user = auth.currentUser ?: return Result.failure(Exception("User not logged in"))
+        val user = auth.currentUser ?: return Result.failure(Exception("Kullanıcı oturumu yok"))
 
         return try {
             val credential = EmailAuthProvider.getCredential(user.email ?: "", currentPassword)
@@ -423,14 +438,36 @@ class AuthRepository @Inject constructor(
 
 
 
+    suspend fun updateEmailInFirestore(uid: String, newEmail: String) {
+        firestore.collection("users")
+            .document(uid)
+            .update("email", newEmail)
+            .await()
+    }
 
 
 
     fun logout() {
         val user = getCurrentUser()
         user?.let {
-            setUserOffline(it.uid) // Set user as offline before logging out
+            val uid = it.uid
+
+            // Firestore offline
+            setUserOffline(uid)
+
+            // Realtime Database temizliği
+            val realtimeDb = FirebaseDatabase.getInstance().getReference("users/$uid")
+            realtimeDb.child("online").setValue(false)
+            realtimeDb.child("inCall").setValue(false)
+            realtimeDb.child("lastSeen").setValue(System.currentTimeMillis())
+
+            // Aktif callRequest temizliği
+            FirebaseDatabase.getInstance().getReference("callRequests/$uid").removeValue()
+            FirebaseDatabase.getInstance().getReference("calls/$uid").removeValue()
+            FirebaseDatabase.getInstance().getReference("calls").child(uid).removeValue()
+
+            auth.signOut()
         }
-        auth.signOut()
     }
+
 }

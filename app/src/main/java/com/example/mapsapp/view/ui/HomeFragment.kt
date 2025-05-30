@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.mapsapp.R
 import com.example.mapsapp.adapter.CardAdapter
 import com.example.mapsapp.databinding.FragmentHomeBinding
 import com.example.mapsapp.repository.AuthRepository
@@ -55,7 +56,6 @@ class HomeFragment : BaseFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         saveMyLocationOnce()
-
     }
 
     private fun observeUserInfo() {
@@ -85,8 +85,14 @@ class HomeFragment : BaseFragment() {
             .setMessage("Are you sure you want to exit?")
             .setPositiveButton("Yes") { dialog, _ ->
                 authViewModel.logout()
-                val action = HomeFragmentDirections.actionHomeFragmentToLoginFragment()
-                findNavController().navigate(action)
+
+                val navOptions = androidx.navigation.NavOptions.Builder()
+                    .setPopUpTo(R.id.nav_graph, true) // 🔥 stack'i komple temizler
+                    .setLaunchSingleTop(true)
+                    .build()
+
+                findNavController().navigate(R.id.loginFragment, null, navOptions)
+
                 dialog.dismiss()
             }
             .setNegativeButton("Cancel") { dialog, _ ->
@@ -97,6 +103,7 @@ class HomeFragment : BaseFragment() {
         alertDialog.show()
     }
 
+
     private fun saveMyLocationOnce() {
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED) return
@@ -105,10 +112,15 @@ class HomeFragment : BaseFragment() {
         client.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, null)
             .addOnSuccessListener { loc ->
                 if (loc != null) {
-                    FirebaseFirestore.getInstance()
-                        .collection("users")
-                        .document(FirebaseAuth.getInstance().currentUser!!.uid)
-                        .update("location", GeoPoint(loc.latitude, loc.longitude))
+                    val currentUser = FirebaseAuth.getInstance().currentUser
+                    if (currentUser != null) {
+                        FirebaseFirestore.getInstance()
+                            .collection("users")
+                            .document(currentUser.uid)
+                            .update("location", GeoPoint(loc.latitude, loc.longitude))
+                    } else {
+                        Toast.makeText(requireContext(), "Kullanıcı oturumu bulunamadı", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
                     Toast.makeText(requireContext(), "Konum alınamadı", Toast.LENGTH_SHORT).show()
                 }
@@ -116,11 +128,8 @@ class HomeFragment : BaseFragment() {
     }
 
 
-
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
-
-
 }

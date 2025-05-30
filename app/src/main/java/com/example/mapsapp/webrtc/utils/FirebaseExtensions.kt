@@ -4,27 +4,49 @@ import com.google.firebase.database.*
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 suspend fun DatabaseReference.awaitSingle(): DataSnapshot =
-    suspendCoroutine { cont ->
-        this.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) = cont.resume(snapshot)
-            override fun onCancelled(error: DatabaseError) = cont.resumeWithException(error.toException())
-        })
+    suspendCancellableCoroutine { cont ->
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (cont.isActive) cont.resume(snapshot)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                if (cont.isActive) cont.resumeWithException(error.toException())
+            }
+        }
+
+        this.addListenerForSingleValueEvent(listener)
+
+        // Coroutine iptal edilirse listener'ı da kaldır
+        cont.invokeOnCancellation {
+            this.removeEventListener(listener)
+        }
     }
 
 suspend fun DatabaseReference.awaitSetValue(value: Any?): Unit =
-    suspendCoroutine { cont ->
+    suspendCancellableCoroutine { cont ->
         this.setValue(value)
-            .addOnSuccessListener { cont.resume(Unit) }
-            .addOnFailureListener { cont.resumeWithException(it) }
+            .addOnSuccessListener {
+                if (cont.isActive) cont.resume(Unit)
+            }
+            .addOnFailureListener {
+                if (cont.isActive) cont.resumeWithException(it)
+            }
     }
 
 suspend fun DatabaseReference.awaitRemoveValue(): Unit =
-    suspendCoroutine { cont ->
+    suspendCancellableCoroutine { cont ->
         this.removeValue()
-            .addOnSuccessListener { cont.resume(Unit) }
-            .addOnFailureListener { cont.resumeWithException(it) }
+            .addOnSuccessListener {
+                if (cont.isActive) cont.resume(Unit)
+            }
+            .addOnFailureListener {
+                if (cont.isActive) cont.resumeWithException(it)
+            }
     }
 
 suspend fun <T> DatabaseReference.awaitTypedValue(clazz: Class<T>): T? {
