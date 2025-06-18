@@ -9,7 +9,8 @@
         app:showAsAction="always" />
     <item
         android:id="@+id/action_video_call"
-        android:icon="@drawable/ic_video_call"
+        android:icon="@drawable/video"
         android:title="Video Call"
+        android:iconTint="@color/white"
         app:showAsAction="always" />
 </menu>

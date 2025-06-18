@@ -126,31 +126,45 @@ class CallActivity : AppCompatActivity() {
         binding = ActivityCallBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Intent verilerini al
         roomId = intent.getStringExtra("roomId") ?: ""
         isCaller = intent.getBooleanExtra("isCaller", true)
         callerUid = intent.getStringExtra("callerUid") ?: ""
         isVideoCall = intent.getBooleanExtra("isVideoCall", true)
+        val receiverUid = intent.getStringExtra("receiverUid") ?: ""
 
+        // Karşı tarafın UID’sini belirle
+        val otherUserId = if (isCaller) receiverUid else callerUid
+
+        // Karşı tarafın ismini çek ve ekrana yaz
+        lifecycleScope.launch {
+            val user = firebaseClient.getUserById(otherUserId)
+            binding.callTitleTv.text = if (isCaller) {
+                "In Call with ${user?.name ?: "Unknown"}"
+            } else {
+                "In Call with ${user?.name ?: "Unknown"}"
+            }
+        }
+
+        // Çağrı durumunu dinle
         listenForCallStatus()
 
+        // Gerekli izinler
         if (!allPermissionsGranted()) {
             ActivityCompat.requestPermissions(this, permissions, requestCodePermissions)
         } else {
             startCallSetup()
         }
 
+        // Bitir butonu
         binding.endCallButton.setOnClickListener {
             endCallAndExit()
         }
 
-
-        binding.callTitleTv.text =
-            if (isCaller) "Arama başlatılıyor..." else "Arama yanıtlanıyor..."
-
+        // Geri tuşuna özel davranış
         onBackPressedDispatcher.addCallback(this) {
             endCallAndExit()
         }
-
     }
 
     private fun observeCallAccepted() {

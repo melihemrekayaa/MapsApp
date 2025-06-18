@@ -47,7 +47,7 @@
             android:textColor="@color/white"
             android:padding="10dp"
             android:id="@+id/callTitleTv"
-            android:text="Video Call With Masoud"/>
+            android:text="Video Call With Someone"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 

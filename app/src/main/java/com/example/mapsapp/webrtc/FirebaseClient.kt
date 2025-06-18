@@ -1,15 +1,18 @@
 package com.example.mapsapp.webrtc
 
 
+import com.example.mapsapp.model.User
 import com.example.mapsapp.webrtc.utils.awaitRemoveValue
 import com.example.mapsapp.webrtc.utils.awaitSetValue
 import com.example.mapsapp.webrtc.utils.awaitSingle
 import com.google.firebase.database.*
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
 class FirebaseClient {
 
     private val dbRef = FirebaseDatabase.getInstance().reference
+    private val firestore = FirebaseFirestore.getInstance()
 
     suspend fun sendCallRequest(
         receiverId: String,
@@ -106,6 +109,17 @@ class FirebaseClient {
             false
         }
     }
+
+    suspend fun getUserById(uid: String): User? {
+        return try {
+            val snapshot = firestore.collection("users").document(uid).get().await()
+            snapshot.toObject(User::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+
 
     suspend fun setUserInCall(userId: String, inCall: Boolean) {
         FirebaseDatabase.getInstance()
