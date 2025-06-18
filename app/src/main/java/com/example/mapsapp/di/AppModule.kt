@@ -74,7 +74,7 @@ object AppModule {
             .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
-                    .addHeader("Authorization", "Bearer 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")
+                    .addHeader("Authorization", "Bearer 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")
                     .build()
                 chain.proceed(request)
             }
