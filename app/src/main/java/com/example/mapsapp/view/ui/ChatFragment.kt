@@ -21,8 +21,10 @@ import com.example.mapsapp.webrtc.CallActivity
 import com.example.mapsapp.webrtc.FirebaseClient
 import com.example.mapsapp.webrtc.IncomingCallActivity.Companion.isActive
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -70,18 +72,29 @@ class ChatFragment : BaseFragment() {
         }
 
         toolbar.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                R.id.action_voice_call -> {
-                    startCall(false)
-                    true
+            val userId = receiverId
+            val userName = receiverName
+
+            if (userId != null && userName != null) {
+                val targetUser = User(uid = userId, name = userName)
+
+                when (item.itemId) {
+                    R.id.action_voice_call -> {
+                        startCall(targetUser, false)
+                        true
+                    }
+                    R.id.action_video_call -> {
+                        startCall(targetUser, true)
+                        true
+                    }
+                    else -> false
                 }
-                R.id.action_video_call -> {
-                    startCall(true)
-                    true
-                }
-                else -> false
+            } else {
+                Toast.makeText(requireContext(), "User info missing", Toast.LENGTH_SHORT).show()
+                false
             }
         }
+
     }
     private fun observeMessages() {
 
@@ -118,49 +131,52 @@ class ChatFragment : BaseFragment() {
         }
     }
 
-    private fun startCall(isVideoCall: Boolean) {
+    private fun startCall(targetUser: User, isVideoCall: Boolean) {
         getCameraAndMicPermission {
-            receiverId?.let { receiverId ->
-                val roomId = "room_${System.currentTimeMillis()}"
-                val senderUid = FirebaseAuth.getInstance().currentUser?.uid ?: return@let
+            val receiverId = targetUser.uid
+            val receiverName = targetUser.name
+            val senderUid = FirebaseAuth.getInstance().currentUser?.uid ?: return@getCameraAndMicPermission
+            val roomId = "room_${System.currentTimeMillis()}"
 
-                lifecycleScope.launch {
-                    val inCall = firebaseClient.isUserInCall(receiverId)
+            lifecycleScope.launch {
+                val inCall = firebaseClient.isUserInCall(receiverId)
 
-                    if (inCall) {
-                        Toast.makeText(requireContext(), "Kullanıcı şu anda başka bir görüşmede.", Toast.LENGTH_SHORT).show()
-                        return@launch
-                    }
+                if (inCall) {
+                    Toast.makeText(requireContext(), "User is already in call with someone", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
 
-                    firebaseClient.setUserInCall(receiverId, true)
+                firebaseClient.setUserInCall(receiverId, true)
 
-                    chatViewModel.sendCallRequest(receiverId, isVideoCall, roomId) { success ->
-                        if (success) {
-                            lifecycleScope.launch {
-                                val status = firebaseClient.listenForCallStatus(roomId)
-                                if (status == "rejected") {
-                                    Toast.makeText(requireContext(), "Çağrı reddedildi", Toast.LENGTH_SHORT).show()
-                                }
+                chatViewModel.sendCallRequest(receiverId, isVideoCall, roomId) { success ->
+                    if (success) {
+                        lifecycleScope.launch {
+                            val status = firebaseClient.listenForCallStatus(roomId)
+                            if (status == "rejected") {
+                                Toast.makeText(requireContext(), "Call rejected", Toast.LENGTH_SHORT).show()
                             }
+                        }
 
-                            val intent = Intent(requireContext(), CallActivity::class.java).apply {
-                                putExtra("roomId", roomId)
-                                putExtra("callerUid", senderUid)
-                                putExtra("isCaller", true)
-                                putExtra("isVideoCall", isVideoCall)
-                            }
-                            startActivity(intent)
-                        } else {
-                            Toast.makeText(requireContext(), "Çağrı gönderilemedi", Toast.LENGTH_SHORT).show()
-                            lifecycleScope.launch {
-                                firebaseClient.setUserInCall(receiverId, false)
-                            }
+                        val intent = Intent(requireContext(), CallActivity::class.java).apply {
+                            putExtra("roomId", roomId)
+                            putExtra("callerUid", senderUid)
+                            putExtra("receiverUid", receiverId) // ✅ bu eklendi
+                            putExtra("isCaller", true)
+                            putExtra("isVideoCall", isVideoCall)
+                        }
+                        startActivity(intent)
+                    } else {
+                        Toast.makeText(requireContext(), "Call request failed", Toast.LENGTH_SHORT).show()
+                        lifecycleScope.launch {
+                            firebaseClient.setUserInCall(receiverId, false)
                         }
                     }
                 }
             }
         }
     }
+
+
 
     private fun getCameraAndMicPermission(onGranted: () -> Unit) {
         val permissions = arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO)
@@ -182,7 +198,7 @@ class ChatFragment : BaseFragment() {
             if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
                 onPermissionGranted?.invoke()
             } else {
-                Toast.makeText(requireContext(), "Çağrı için izinler gerekli.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Permissions are required for call.", Toast.LENGTH_SHORT).show()
             }
         }
     }

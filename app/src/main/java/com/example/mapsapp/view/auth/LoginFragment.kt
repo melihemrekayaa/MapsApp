@@ -90,13 +90,6 @@ class LoginFragment : Fragment() {
     }
 
     private fun navigateToHome() {
-        val user = authViewModel.getCurrentUser()
-        if (user != null && !user.isEmailVerified) {
-            showToast("Please verify your email before continuing.")
-            // Eğer istersen burada direkt email gönderimi de tetikleyebilirsin:
-            // user.sendEmailVerification()
-            return
-        }
 
         val navController = findNavController()
         val currentDestination = navController.currentDestination?.id

@@ -52,11 +52,11 @@ class CardAdapter(
                 holder.itemView.setBackgroundResource(R.drawable.bg_gradient_maps)
             }
             3 -> {
-                holder.cardImage.setImageResource(R.drawable.baseline_voice_chat_24)
+                holder.cardImage.setImageResource(R.drawable.voice)
                 holder.itemView.setBackgroundResource(R.drawable.bg_gradient_voice)
             }
             4 -> {
-                holder.cardImage.setImageResource(R.drawable.ic_video_call)
+                holder.cardImage.setImageResource(R.drawable.video)
                 holder.itemView.setBackgroundResource(R.drawable.bg_gradient_video)
             }
             else -> {

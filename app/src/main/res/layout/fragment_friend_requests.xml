@@ -11,7 +11,7 @@
         android:id="@+id/emptyView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Gelen arkadaşlık isteği yok"
+        android:text="No recent requests"
         android:gravity="center"
         android:visibility="gone"
         android:textSize="16sp"

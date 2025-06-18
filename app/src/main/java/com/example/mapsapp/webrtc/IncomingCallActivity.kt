@@ -9,11 +9,11 @@ import android.os.*
 import android.util.Log
 import android.view.MotionEvent
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.mapsapp.databinding.ActivityIncomingCallBinding
+import com.example.mapsapp.model.User
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -52,7 +52,12 @@ class IncomingCallActivity : AppCompatActivity() {
             return
         }
 
-        binding.tvCallerName.text = "User: $callerUid"
+        // Arayan kişinin adını getir
+        lifecycleScope.launch {
+            val user = firebaseClient.getUserById(callerUid)
+            binding.tvCallerName.text = user?.name?.takeIf { it.isNotBlank() } ?: "Unknown Caller"
+        }
+
         startRingtoneAndVibration()
 
         binding.tvAccept.setOnClickListener { answerCall() }
@@ -69,14 +74,13 @@ class IncomingCallActivity : AppCompatActivity() {
                     if (kotlin.math.abs(deltaX) > 150) {
                         if (deltaX > 0) answerCall() else rejectCall()
                     } else {
-                        v.performClick()  // ☑️ Uyarıyı çözen satır
+                        v.performClick()
                     }
                     true
                 }
                 else -> false
             }
         }
-
     }
 
     private fun startRingtoneAndVibration() {
@@ -97,7 +101,8 @@ class IncomingCallActivity : AppCompatActivity() {
         try {
             ringtone?.stop()
             vibrator?.cancel()
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+        }
     }
 
     private fun answerCall() {
@@ -136,12 +141,11 @@ class IncomingCallActivity : AppCompatActivity() {
             try {
                 val uid = getCurrentUserId()
 
-                firebaseClient.rejectCall(roomId)                   // status = "rejected"
-                firebaseClient.cancelCall(roomId)                   // calls/{roomId} kaldır
-                firebaseClient.setUserInCall(uid, false)            // inCall = false
-                firebaseClient.removeCallRequest(uid, roomId)       // callRequests/{uid} kaldır
-                firebaseClient.removeCallRequest(callerUid, roomId) // arayanın callRequest'i de temizle (yeni eklendi)
-
+                firebaseClient.rejectCall(roomId)
+                firebaseClient.cancelCall(roomId)
+                firebaseClient.setUserInCall(uid, false)
+                firebaseClient.removeCallRequest(uid, roomId)
+                firebaseClient.removeCallRequest(callerUid, roomId)
             } catch (e: Exception) {
                 Log.e("IncomingCall", "rejectCall exception: ${e.message}")
             } finally {
@@ -149,9 +153,6 @@ class IncomingCallActivity : AppCompatActivity() {
             }
         }
     }
-
-
-
 
     private fun getCurrentUserId(): String {
         return FirebaseAuth.getInstance().currentUser?.uid ?: ""

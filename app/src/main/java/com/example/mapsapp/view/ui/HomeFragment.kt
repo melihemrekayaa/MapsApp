@@ -60,7 +60,8 @@ class HomeFragment : BaseFragment() {
 
     private fun observeUserInfo() {
         homeViewModel.user.observe(viewLifecycleOwner) { user ->
-            binding.welcomeMessage.text = "Welcome, ${user?.email ?: "User"}"
+            val username = user?.email?.substringBefore("@")?.trim().orEmpty()
+            binding.welcomeMessage.text = "Welcome, ${username.ifEmpty { "User" }}"
         }
     }
 
